@@ -1,0 +1,10 @@
+# Local environment files
+.env
+.env.*
+
+# IDE files
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
