@@ -1,5 +1,7 @@
 # ADR-002: Mapping AttendanceRecord as Embedded/Inline Columns in Registrations Table
 
+**Status: Proposed**
+
 ## 1. Context
 
 The `AttendanceRecord` is modeled as a Value Object within the `Registration` Aggregate Root. This `AttendanceRecord` captures details such as `attended` (boolean), `attendance_marked_at` (timestamp), and `attendance_marked_by` (user ID). Given that each `Registration` maps to exactly one workshop (and one session), a registration can have at most one attendance status associated with it. The lifecycle of `AttendanceRecord` is entirely dependent on its parent `Registration`.

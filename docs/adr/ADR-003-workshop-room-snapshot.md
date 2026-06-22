@@ -1,5 +1,7 @@
 # ADR-003: Room Information Snapshotting inside Workshop Module
 
+**Status: Proposed**
+
 ## 1. Context
 
 In the IT Workshop Ticket Booking Platform, a scheduled workshop is held in a physical room. Workshops need to display room information (such as name, capacity, and location) to prospective attendees and use the room capacity to restrict the number of registrations.

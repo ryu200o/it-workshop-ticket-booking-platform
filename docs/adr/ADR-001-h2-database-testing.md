@@ -1,5 +1,7 @@
 # ADR-001: H2 Database for Testing and Migration to Testcontainers PostgreSQL
 
+**Status: Proposed**
+
 ## 1. Context
 
 Currently, the IT Workshop Ticket Booking Platform utilizes an in-memory H2 database (with PostgreSQL compatibility mode) for local development and Continuous Integration/Continuous Deployment (CI/CD) testing environments. This approach was initially chosen for its simplicity, speed, and ease of setup, especially during the early stages of development.
