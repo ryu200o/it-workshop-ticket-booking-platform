@@ -70,8 +70,9 @@ Manages the catalog of workshops, speaker details, timing, and room snapshots.
 | `updated_at` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | Record last update timestamp. |
 | `room_id` | `UUID` | `NOT NULL` | Logical reference to the scheduled room (no physical foreign key). |
 | `room_name` | `VARCHAR(255)` | `NOT NULL` | **Snapshot** of the room name at scheduling time. |
-| `room_capacity` | `INTEGER` | `NOT NULL` | **Snapshot** of the room capacity at scheduling time (used as max workshop capacity). |
+| `room_capacity_snapshot` | `INTEGER` | `NOT NULL` | **Snapshot** of the room capacity at scheduling time. **Note: This snapshot is NOT used as a business limit.** |
 | `room_location` | `VARCHAR(255)` | `NOT NULL` | **Snapshot** of the room location at scheduling time. |
+| `workshop_capacity` | `INTEGER` | `NOT NULL` | **The true registration capacity limit.** This is the business limit for bookings, which can be independent of `room_capacity_snapshot`. |
 
 **Indexes & Constraints**:
 *   `chk_workshops_time`: CHECK constraint to ensure `end_time > start_time`.
@@ -112,8 +113,8 @@ Stores published domain events waiting for asynchronous outbox delivery. Managed
 | `listener_id` | `TEXT` | `NOT NULL` | Identifier of the consuming event listener (fully qualified class/method name). |
 | `event_type` | `TEXT` | `NOT NULL` | Fully qualified class name of the published event type. |
 | `serialized_event` | `TEXT` | `NOT NULL` | Serialized JSON payload of the event. |
-| `publication_date` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | Timestamp of event publication. |
-| `completion_date` | `TIMESTAMP WITH TIME ZONE` | | Timestamp of successful consumer processing. |
+| `publication_date` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | Timestamp when the event was published. |
+| `completion_date` | `TIMESTAMP WITH TIME ZONE` | | Timestamp when event processing completed. |
 | `status` | `TEXT` | | Delivery status (e.g. `PUBLISHED`). |
 | `completion_attempts` | `INTEGER` | | Count of consumption retry attempts. |
 | `last_resubmission_date`| `TIMESTAMP WITH TIME ZONE` | | Timestamp of the last retry attempt. |

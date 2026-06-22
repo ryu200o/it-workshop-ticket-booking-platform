@@ -1,6 +1,6 @@
 # ADR-002: Mapping AttendanceRecord as Embedded/Inline Columns in Registrations Table
 
-**Status: Proposed**
+**Status: Accepted**
 
 ## 1. Context
 
