@@ -1,6 +1,6 @@
 # ADR-003: Room Information Snapshotting inside Workshop Module
 
-**Status: Proposed**
+**Status: Accepted**
 
 ## 1. Context
 
