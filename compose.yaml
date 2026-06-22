@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: 'postgres:17-alpine'
+    container_name: 'workshop-postgres'
+    environment:
+      - 'POSTGRES_DB=${DB_NAME:-workshop_db}'
+      - 'POSTGRES_USER=${DB_USER:-workshop_user}'
+      - 'POSTGRES_PASSWORD=${DB_PASSWORD:-workshop123}'
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - workshop-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-workshop_user} -d ${DB_NAME:-workshop_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Optional: Redis (if needed)
+  # redis:
+  #   image: 'redis:7-alpine'
+  #   container_name: 'workshop-redis'
+  #   ports:
+  #     - '6379:6379'
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - workshop-network
+  #   restart: unless-stopped
+
+networks:
+  workshop-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  # redis_data:
