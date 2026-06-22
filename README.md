@@ -40,9 +40,9 @@ To set up the project locally, follow these steps:
     *   Maven 3.8+
 
 2.  **Start PostgreSQL with Docker Compose**:
-    The project includes a `docker-compose.yml` file to quickly spin up a PostgreSQL database.
+    The project includes a `compose.yaml` file to quickly spin up a PostgreSQL database.
     ```bash
-    docker-compose up -d postgres
+    docker compose up -d postgres
     ```
 
 3.  **Local Environment Secrets**:
@@ -118,7 +118,7 @@ scripts/run-tests.sh
 │       └── ADR-003-workshop-room-snapshot.md  
 ├── .gitignore                               # Git ignore file  
 ├── pom.xml                                  # Maven Project Object Model  
-├── docker-compose.yml                       # Docker Compose for local services  
+├── compose.yaml                       # Docker Compose for local services  
 ├── README.md                                # Project README  
 └── LICENSE                                  # Project License  
 ```

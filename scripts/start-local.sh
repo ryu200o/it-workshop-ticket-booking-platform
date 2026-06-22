@@ -4,7 +4,7 @@
 set -e
 
 echo "🚀 Starting PostgreSQL with Docker..."
-docker-compose up -d
+docker compose up -d
 
 echo "⏳ Waiting for PostgreSQL to be ready..."
 sleep 5
