@@ -3,8 +3,16 @@
 
 set -e
 
-echo "🚀 Starting PostgreSQL with Docker..."
-docker compose up -d
+echo "📝 Loading local environment variables from .env.local..."
+if [ -f .env.local ]; then
+    # Load env vars but ignore comments and empty lines
+    export $(grep -v '^#' .env.local | xargs)
+else
+    echo "⚠️ .env.local not found, using default fallbacks."
+fi
+
+echo "🚀 Starting PostgreSQL with Docker Compose..."
+docker compose --env-file .env.local up -d
 
 echo "⏳ Waiting for PostgreSQL to be ready..."
 sleep 5

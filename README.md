@@ -39,6 +39,25 @@ To set up the project locally, follow these steps:
     *   Docker and Docker Compose
     *   Maven 3.8+
 
+
+### Runtime Environment Flow (Phase B)
+
+The project utilizes a synchronized, transparent environment variables loading flow:
+
+```text
+.env.local (Configuration Source)
+   ↓
+scripts/start-local.sh (Parsing & Export)
+   ├─► docker compose --env-file .env.local up -d (Pre-configures Postgres DB)
+   └─► export $(grep -v '^#' .env.local | xargs) (Injects into Java Environment)
+         ↓
+   Spring Boot Environment Placeholders (e.g. ${DB_HOST:localhost})
+         ↓
+   Application connected to PostgreSQL with overriden credentials
+```
+
+This ensures that a single tệp tin `.env.local` controls both the local Docker container database definition and the Spring Boot datasource properties, with clean local fallbacks if the tệp is missing.
+
 2.  **Start PostgreSQL with Docker Compose**:
     The project includes a `compose.yaml` file to quickly spin up a PostgreSQL database.
     ```bash
