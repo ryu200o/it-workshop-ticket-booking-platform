@@ -56,24 +56,19 @@ public class RoomControllerTests {
                 UUID.randomUUID(),
                 "ROOM_A",
                 10,
-                "Building A, Floor 1",
-                true
+                "Building A, Floor 1"
         );
     }
 
     @Test
     void createRoom() throws Exception {
-        RoomRequest roomRequest = new RoomRequest();
-        roomRequest.setRoomCode("ROOM_B");
-        roomRequest.setPhysicalCapacity(15);
-        roomRequest.setLocation("Building B, Floor 2");
+        RoomRequest roomRequest = new RoomRequest("ROOM_B", 15, "Building B, Floor 2");
 
         Room newRoom = new Room(
                 UUID.randomUUID(),
-                roomRequest.getRoomCode(),
-                roomRequest.getPhysicalCapacity(),
-                roomRequest.getLocation(),
-                true
+                roomRequest.roomCode(),
+                roomRequest.physicalCapacity(),
+                roomRequest.location()
         );
 
         when(roomService.createRoom(any(String.class), any(Integer.class), any(String.class)))
@@ -96,25 +91,21 @@ public class RoomControllerTests {
                                 fieldWithPath("physicalCapacity").description("The physical capacity of the room.").type(JsonFieldType.NUMBER),
                                 fieldWithPath("location").description("The location of the room.").type(JsonFieldType.STRING),
                                 fieldWithPath("active").description("The active status of the room.").type(JsonFieldType.BOOLEAN),
-                                fieldWithPath("createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING),
-                                fieldWithPath("updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING)
+                                fieldWithPath("createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING).optional(),
+                                fieldWithPath("updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING).optional()
                         )
                 ));
     }
 
     @Test
     void updateRoom() throws Exception {
-        RoomRequest roomRequest = new RoomRequest();
-        roomRequest.setRoomCode("ROOM_A_UPDATED");
-        roomRequest.setPhysicalCapacity(12);
-        roomRequest.setLocation("Building A, Floor 1, Wing East");
+        RoomRequest roomRequest = new RoomRequest("ROOM_A_UPDATED", 12, "Building A, Floor 1, Wing East");
 
         Room updatedRoom = new Room(
                 sampleRoom.getId(),
-                roomRequest.getRoomCode(),
-                roomRequest.getPhysicalCapacity(),
-                roomRequest.getLocation(),
-                sampleRoom.isActive()
+                roomRequest.roomCode(),
+                roomRequest.physicalCapacity(),
+                roomRequest.location()
         );
 
         when(roomService.updateRoom(any(UUID.class), any(String.class), any(Integer.class), any(String.class)))
@@ -139,24 +130,23 @@ public class RoomControllerTests {
                                 fieldWithPath("physicalCapacity").description("The updated physical capacity of the room.").type(JsonFieldType.NUMBER),
                                 fieldWithPath("location").description("The updated location of the room.").type(JsonFieldType.STRING),
                                 fieldWithPath("active").description("The active status of the room.").type(JsonFieldType.BOOLEAN),
-                                fieldWithPath("createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING),
-                                fieldWithPath("updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING)
+                                fieldWithPath("createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING).optional(),
+                                fieldWithPath("updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING).optional()
                         )
                 ));
     }
 
     @Test
     void activateDeactivateRoom() throws Exception {
-        RoomActivationRequest activationRequest = new RoomActivationRequest();
-        activationRequest.setActive(false);
+        RoomActivationRequest activationRequest = new RoomActivationRequest(false);
 
         Room deactivatedRoom = new Room(
                 sampleRoom.getId(),
                 sampleRoom.getRoomCode(),
                 sampleRoom.getPhysicalCapacity(),
-                sampleRoom.getLocation(),
-                false
+                sampleRoom.getLocation()
         );
+        deactivatedRoom.deactivate();
 
         when(roomService.activateDeactivateRoom(any(UUID.class), any(Boolean.class)))
                 .thenReturn(deactivatedRoom);
@@ -179,7 +169,7 @@ public class RoomControllerTests {
     void getRoomList() throws Exception {
         List<Room> rooms = Arrays.asList(
                 sampleRoom,
-                new Room(UUID.randomUUID(), "ROOM_C", 20, "Building C, Ground Floor", true)
+                new Room(UUID.randomUUID(), "ROOM_C", 20, "Building C, Ground Floor")
         );
         when(roomService.getRoomList()).thenReturn(rooms);
 
@@ -193,8 +183,8 @@ public class RoomControllerTests {
                                 fieldWithPath("[].physicalCapacity").description("The physical capacity of the room.").type(JsonFieldType.NUMBER),
                                 fieldWithPath("[].location").description("The location of the room.").type(JsonFieldType.STRING),
                                 fieldWithPath("[].active").description("The active status of the room.").type(JsonFieldType.BOOLEAN),
-                                fieldWithPath("[].createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING),
-                                fieldWithPath("[].updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING)
+                                fieldWithPath("[].createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING).optional(),
+                                fieldWithPath("[].updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING).optional()
                         )
                 ));
     }
@@ -217,8 +207,8 @@ public class RoomControllerTests {
                                 fieldWithPath("physicalCapacity").description("The physical capacity of the room.").type(JsonFieldType.NUMBER),
                                 fieldWithPath("location").description("The location of the room.").type(JsonFieldType.STRING),
                                 fieldWithPath("active").description("The active status of the room.").type(JsonFieldType.BOOLEAN),
-                                fieldWithPath("createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING),
-                                fieldWithPath("updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING)
+                                fieldWithPath("createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING).optional(),
+                                fieldWithPath("updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING).optional()
                         )
                 ));
     }

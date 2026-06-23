@@ -1,6 +1,7 @@
 package com.example.itworkshopticketbookingplatform.room.domain;
 
 import jakarta.persistence.*;
+import org.springframework.lang.NonNull;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -24,92 +25,87 @@ public class Room {
     @Column(name = "active", nullable = false)
     private boolean active;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Room() {
+    protected Room() {
     }
 
-    public Room(UUID id, String roomCode, int physicalCapacity, String location, boolean active) {
+    public Room(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location) {
         this.id = Objects.requireNonNull(id, "Room ID cannot be null");
-        setRoomCode(roomCode);
-        setPhysicalCapacity(physicalCapacity);
-        setLocation(location);
-        this.active = active;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public String getRoomCode() {
-        return roomCode;
-    }
-
-    public void setRoomCode(String roomCode) {
-        if (roomCode == null || roomCode.isBlank()) {
-            throw new IllegalArgumentException("Room code cannot be null or blank");
-        }
+        requireValidRoomCode(roomCode);
+        requirePositiveCapacity(physicalCapacity);
+        requireValidLocation(location);
+        
         this.roomCode = roomCode;
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public int getPhysicalCapacity() {
-        return physicalCapacity;
-    }
-
-    public void setPhysicalCapacity(int physicalCapacity) {
-        if (physicalCapacity <= 0) {
-            throw new IllegalArgumentException("Physical capacity must be greater than 0");
-        }
         this.physicalCapacity = physicalCapacity;
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        if (location == null || location.isBlank()) {
-            throw new IllegalArgumentException("Location cannot be null or blank");
-        }
         this.location = location;
-        this.updatedAt = LocalDateTime.now();
+        this.active = true;
     }
 
-    public boolean isActive() {
-        return active;
+    private void requireValidRoomCode(String code) {
+        if (code == null || code.isBlank()) {
+            throw new InvalidRoomCodeException("Room code cannot be null or blank");
+        }
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
-        this.updatedAt = LocalDateTime.now();
+    private void requirePositiveCapacity(int capacity) {
+        if (capacity <= 0) {
+            throw new InvalidPhysicalCapacityException("Physical capacity must be greater than 0");
+        }
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    private void requireValidLocation(String loc) {
+        if (loc == null || loc.isBlank()) {
+            throw new InvalidLocationException("Location cannot be null or blank");
+        }
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public void rename(@NonNull String newRoomCode) {
+        requireValidRoomCode(newRoomCode);
+        this.roomCode = newRoomCode;
+    }
+
+    public void changeCapacity(int newCapacity) {
+        requirePositiveCapacity(newCapacity);
+        this.physicalCapacity = newCapacity;
+    }
+
+    public void changeLocation(@NonNull String newLocation) {
+        requireValidLocation(newLocation);
+        this.location = newLocation;
+    }
+
+    public void activate() {
+        this.active = true;
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
+
+    // Getters
+    public UUID getId() { return id; }
+    public String getRoomCode() { return roomCode; }
+    public int getPhysicalCapacity() { return physicalCapacity; }
+    public String getLocation() { return location; }
+    public boolean isActive() { return active; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {
@@ -130,10 +126,7 @@ public class Room {
                "id=" + id +
                ", roomCode='" + roomCode + '\'' +
                ", physicalCapacity=" + physicalCapacity +
-               ", location='" + location + '\'' +
                ", active=" + active +
-               ", createdAt=" + createdAt +
-               ", updatedAt=" + updatedAt +
                '}';
     }
 }

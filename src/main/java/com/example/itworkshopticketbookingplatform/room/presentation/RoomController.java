@@ -3,7 +3,6 @@ package com.example.itworkshopticketbookingplatform.room.presentation;
 import com.example.itworkshopticketbookingplatform.room.application.RoomService;
 import com.example.itworkshopticketbookingplatform.room.domain.Room;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -26,9 +25,9 @@ public class RoomController {
     @PostMapping
     public ResponseEntity<RoomResponse> createRoom(@Valid @RequestBody RoomRequest roomRequest) {
         Room room = roomService.createRoom(
-                roomRequest.getRoomCode(),
-                roomRequest.getPhysicalCapacity(),
-                roomRequest.getLocation()
+                roomRequest.roomCode(),
+                roomRequest.physicalCapacity(),
+                roomRequest.location()
         );
         URI location = UriComponentsBuilder.fromPath("/api/v1/rooms/{id}")
                 .buildAndExpand(room.getId()).toUri();
@@ -39,16 +38,16 @@ public class RoomController {
     public ResponseEntity<RoomResponse> updateRoom(@PathVariable UUID roomId, @Valid @RequestBody RoomRequest roomRequest) {
         Room room = roomService.updateRoom(
                 roomId,
-                roomRequest.getRoomCode(),
-                roomRequest.getPhysicalCapacity(),
-                roomRequest.getLocation()
+                roomRequest.roomCode(),
+                roomRequest.physicalCapacity(),
+                roomRequest.location()
         );
         return ResponseEntity.ok(new RoomResponse(room));
     }
 
     @PatchMapping("/{roomId}/activation")
     public ResponseEntity<Void> activateDeactivateRoom(@PathVariable UUID roomId, @Valid @RequestBody RoomActivationRequest activationRequest) {
-        roomService.activateDeactivateRoom(roomId, activationRequest.getActive());
+        roomService.activateDeactivateRoom(roomId, activationRequest.active());
         return ResponseEntity.ok().build();
     }
 

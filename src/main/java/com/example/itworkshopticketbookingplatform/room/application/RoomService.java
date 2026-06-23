@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -26,7 +25,7 @@ public class RoomService {
             throw new DuplicateRoomCodeException(roomCode);
         });
 
-        Room newRoom = new Room(UUID.randomUUID(), roomCode, physicalCapacity, location, true);
+        Room newRoom = new Room(UUID.randomUUID(), roomCode, physicalCapacity, location);
         return roomRepository.save(newRoom);
     }
 
@@ -40,9 +39,9 @@ public class RoomService {
             });
         }
 
-        room.setRoomCode(roomCode);
-        room.setPhysicalCapacity(physicalCapacity);
-        room.setLocation(location);
+        room.rename(roomCode);
+        room.changeCapacity(physicalCapacity);
+        room.changeLocation(location);
 
         return roomRepository.save(room);
     }
@@ -50,7 +49,11 @@ public class RoomService {
     public Room activateDeactivateRoom(UUID id, boolean active) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException(id));
-        room.setActive(active);
+        if (active) {
+            room.activate();
+        } else {
+            room.deactivate();
+        }
         return roomRepository.save(room);
     }
 
