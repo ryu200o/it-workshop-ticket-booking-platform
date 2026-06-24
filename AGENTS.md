@@ -14,10 +14,11 @@ The project is structured using Spring Modulith, promoting a modular and cohesiv
 
 ### Standard Module Structure
 Each module should follow a consistent directory structure, typically including:
-- `application/`: Contains application services, DTOs, mappers, and use case implementations.
-- `domain/`: Contains domain entities, value objects, domain services, and repositories interfaces.
-- `infrastructure/`: Contains persistence implementations (e.g., Spring Data repositories), external service clients, and message listeners/producers.
-- `api/`: (Optional, for external module exposure) Contains public interfaces and DTOs for interaction with other modules or external systems.
+- `api/`: Public contracts for inter-module communication (interfaces, DTOs, events). This contains only public-facing types and interfaces.
+- `internal/`: Contains internal implementation details that are not exposed to other modules directly.
+- `application/`: Orchestrates business logic, handles use cases, and coordinates across domain entities and infrastructure services. It defines DTOs for input and output.
+- `domain/`: Contains the core business logic, entities, value objects, and domain services. This layer should be framework-free and focus solely on business rules, independent of persistence or other infrastructure concerns.
+- `infrastructure/`: Provides technical capabilities like persistence (e.g., Spring Data repositories and JPA entity mappings), messaging, and external API integrations.
 
 ## Guidelines for AI When Generating Code
 
