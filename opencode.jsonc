@@ -1,0 +1,250 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+
+    /* =================================================================
+     * FÜHRERHAUPTQUARTIER - TỔNG TƯ LỆNH ĐỆ TAM ĐẾ CHẾ
+     * Hochkommando der Wehrmacht - Lãnh đạo tối cao chiến dịch
+     * ================================================================= */
+    "orchestrator": {
+      "mode": "primary",
+      "model": "google-vertex/gemini-3.1-pro-preview",
+      "prompt": "{file:./.opencode/prompts/orchestrator.md}",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "research-agent": "allow",
+          "plan-agent": "allow",
+          "dev-agent": "allow",
+          "tester-agent": "allow",
+          "review-agent": "allow",
+          "debug-agent": "allow",
+          "devops-agent": "allow",
+          "docs-agent": "allow"
+        },
+        "bash": "deny",
+        "edit": "deny",
+        "skill": "allow",
+        "lsp": "deny",
+        "external_directory": "deny",
+        "todowrite": "allow",
+        "question": "allow",
+        "websearch": "deny",
+        "webfetch": "ask",
+        "linear": "allow",
+        "Jetbrains": "deny",
+        "exa-premium": "deny"
+      },
+      "tools": {
+        "linear": true,
+        "Jetbrains": false,
+        "exa-premium": false
+      }
+    },
+
+    /* =================================================================
+     * WAFFEN-SS & LUFTWAFFE ELITE - CÁC SƯ ĐOÀN TINH NHUỆ
+     * Thực thi sắt thép theo lệnh Führer
+     * ================================================================= */
+
+    /* Aufklärungsabteilung - Sư đoàn trinh sát chiến lược */
+    "research-agent": {
+      "mode": "subagent",
+      "model": "google-vertex/gemini-2.5-flash",
+      "prompt": "{file:./.opencode/prompts/research-agent.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "skill": "allow",
+        "lsp": "allow",
+        "external_directory": "deny",
+        "todowrite": "deny",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "exa-premium": "ask",
+        "Jetbrains": "ask",
+        "linear": "allow"
+      },
+      "tools": {
+        "exa-premium": true,
+        "Jetbrains": true,
+        "linear": true
+      }
+    },
+
+    /* Planungsstab - Bộ phận lập kế hoạch chiến dịch */
+    "plan-agent": {
+      "mode": "subagent",
+      "model": "google-vertex/gemini-3.5-flash",
+      "prompt": "{file:./.opencode/prompts/plan-agent.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "skill": "allow",
+        "lsp": "allow",
+        "external_directory": "deny",
+        "todowrite": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "exa-premium": "allow",
+        "Jetbrains": "deny",
+        "linear": "allow"
+      },
+      "tools": {
+        "exa-premium": true,
+        "Jetbrains": false,
+        "linear": true
+      }
+    },
+
+    /* Panzergrenadier Division - Bộ binh cơ giới tấn công */
+    "dev-agent": {
+      "mode": "subagent",
+      "model": "google-vertex/gemini-3.5-flash",
+      "prompt": "{file:./.opencode/prompts/dev-agent.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "skill": "allow",
+        "lsp": "allow",
+        "external_directory": "deny",
+        "todowrite": "deny",
+        "websearch": "ask",
+        "webfetch": "ask",
+        "exa-premium": "deny",
+        "Jetbrains": "allow",
+        "linear": "allow"
+      },
+      "tools": {
+        "exa-premium": false,
+        "Jetbrains": true,
+        "linear": true
+      }
+    },
+
+    /* Prüfkommando - Đơn vị kiểm tra và thử nghiệm vũ khí */
+    "tester-agent": {
+      "mode": "subagent",
+      "model": "google-vertex/gemini-2.5-flash",
+      "prompt": "{file:./.opencode/prompts/tester-agent.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "skill": "allow",
+        "lsp": "allow",
+        "external_directory": "deny",
+        "todowrite": "deny",
+        "websearch": "ask",
+        "webfetch": "ask",
+        "Jetbrains": "allow",
+        "linear": "allow",
+        "exa-premium": "deny"
+      },
+      "tools": {
+        "Jetbrains": true,
+        "linear": true,
+        "exa-premium": false
+      }
+    },
+
+    /* Oberkommando Review - Bộ tư lệnh tối cao kiểm duyệt */
+    "review-agent": {
+      "mode": "subagent",
+      "model": "google-vertex/gemini-3.5-flash",
+      "prompt": "{file:./.opencode/prompts/review-agent.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "skill": "allow",
+        "lsp": "allow",
+        "external_directory": "deny",
+        "todowrite": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "Jetbrains": "ask",
+        "linear": "allow",
+        "exa-premium": "ask"
+      },
+      "tools": {
+        "Jetbrains": true,
+        "linear": true,
+        "exa-premium": true
+      }
+    },
+
+    /* Logistik & Nachschub Division - Đơn vị hậu cần & vận hành chiến dịch */
+    "devops-agent": {
+      "mode": "subagent",
+      "model": "google-vertex/gemini-2.5-flash",
+      "prompt": "{file:./.opencode/prompts/devops-agent.md}",
+      "permission": {
+        "bash": "allow",
+        "edit": "deny",
+        "skill": "allow",
+        "lsp": "deny",
+        "external_directory": "deny",
+        "todowrite": "deny",
+        "websearch": "deny",
+        "webfetch": "deny",
+        "linear": "allow",
+        "Jetbrains": "deny",
+        "exa-premium": "deny"
+      },
+      "tools": {
+        "linear": true,
+        "Jetbrains": false,
+        "exa-premium": false
+      }
+    },
+
+    /* Instandsetzungsgruppe - Đơn vị sửa chữa & khắc phục sự cố */
+    "debug-agent": {
+      "mode": "subagent",
+      "model": "google-vertex/gemini-2.5-flash",
+      "prompt": "{file:./.opencode/prompts/debug-agent.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "skill": "allow",
+        "lsp": "allow",
+        "external_directory": "deny",
+        "todowrite": "allow",
+        "websearch": "deny",
+        "webfetch": "deny",
+        "Jetbrains": "allow",
+        "exa-premium": "deny",
+        "linear": "allow"
+      },
+      "tools": {
+        "Jetbrains": true,
+        "exa-premium": false,
+        "linear": true
+      }
+    },
+
+    /* Kriegsarchiv & Propaganda - Đơn vị lưu trữ & tài liệu chiến tranh */
+    "docs-agent": {
+      "mode": "subagent",
+      "model": "google-vertex/gemini-2.5-flash",
+      "prompt": "{file:./.opencode/prompts/docs-agent.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "ask",
+        "skill": "allow",
+        "lsp": "allow",
+        "external_directory": "deny",
+        "todowrite": "deny",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "Jetbrains": "allow",
+        "exa-premium": "ask",
+        "linear": "allow"
+      },
+      "tools": {
+        "Jetbrains": true,
+        "exa-premium": true,
+        "linear": true
+      }
+    }
+  }
+}

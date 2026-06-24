@@ -36,3 +36,9 @@ build/
 .env.local
 .env.*
 !.env.example
+
+# AI and Orchestrator artifacts
+.opencode/
+opencode.jsonc
+.llm/
+

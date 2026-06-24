@@ -1,10 +1,10 @@
 package com.example.itworkshopticketbookingplatform.room;
 
-import com.example.itworkshopticketbookingplatform.room.application.RoomService;
-import com.example.itworkshopticketbookingplatform.room.domain.Room;
-import com.example.itworkshopticketbookingplatform.room.presentation.RoomActivationRequest;
-import com.example.itworkshopticketbookingplatform.room.presentation.RoomController;
-import com.example.itworkshopticketbookingplatform.room.presentation.RoomRequest;
+import com.example.itworkshopticketbookingplatform.room.RoomService;
+import com.example.itworkshopticketbookingplatform.room.RoomActivationRequest;
+import com.example.itworkshopticketbookingplatform.room.RoomRequest;
+import com.example.itworkshopticketbookingplatform.room.RoomResponse;
+import com.example.itworkshopticketbookingplatform.room.internal.presentation.controller.RoomController;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,8 +31,7 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith({RestDocumentationExtension.class, SpringExtension.class})
 @WebMvcTest(RoomController.class)
@@ -48,15 +47,18 @@ public class RoomControllerTests {
     @MockitoBean
     private RoomService roomService;
 
-    private Room sampleRoom;
+    private RoomResponse sampleRoomResponse;
 
     @BeforeEach
     void setUp() {
-        sampleRoom = new Room(
+        sampleRoomResponse = new RoomResponse(
                 UUID.randomUUID(),
                 "ROOM_A",
                 10,
-                "Building A, Floor 1"
+                "Building A, Floor 1",
+                true, // active
+                LocalDateTime.now(),
+                LocalDateTime.now()
         );
     }
 
@@ -64,21 +66,24 @@ public class RoomControllerTests {
     void createRoom() throws Exception {
         RoomRequest roomRequest = new RoomRequest("ROOM_B", 15, "Building B, Floor 2");
 
-        Room newRoom = new Room(
+        RoomResponse newRoomResponse = new RoomResponse(
                 UUID.randomUUID(),
                 roomRequest.roomCode(),
                 roomRequest.physicalCapacity(),
-                roomRequest.location()
+                roomRequest.location(),
+                true,
+                LocalDateTime.now(),
+                LocalDateTime.now()
         );
 
         when(roomService.createRoom(any(String.class), any(Integer.class), any(String.class)))
-                .thenReturn(newRoom);
+                .thenReturn(newRoomResponse);
 
         this.mockMvc.perform(post("/api/v1/rooms")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(roomRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/rooms/" + newRoom.getId()))
+                .andExpect(header().string("Location", "/api/v1/rooms/" + newRoomResponse.id()))
                 .andDo(document("create-room",
                         requestFields(
                                 fieldWithPath("roomCode").description("The unique code for the room."),
@@ -101,20 +106,24 @@ public class RoomControllerTests {
     void updateRoom() throws Exception {
         RoomRequest roomRequest = new RoomRequest("ROOM_A_UPDATED", 12, "Building A, Floor 1, Wing East");
 
-        Room updatedRoom = new Room(
-                sampleRoom.getId(),
+        RoomResponse updatedRoomResponse = new RoomResponse(
+                sampleRoomResponse.id(),
                 roomRequest.roomCode(),
                 roomRequest.physicalCapacity(),
-                roomRequest.location()
+                roomRequest.location(),
+                sampleRoomResponse.active(),
+                sampleRoomResponse.createdAt(),
+                LocalDateTime.now()
         );
 
         when(roomService.updateRoom(any(UUID.class), any(String.class), any(Integer.class), any(String.class)))
-                .thenReturn(updatedRoom);
+                .thenReturn(updatedRoomResponse);
 
-        this.mockMvc.perform(put("/api/v1/rooms/{roomId}", sampleRoom.getId())
+        this.mockMvc.perform(put("/api/v1/rooms/{roomId}", sampleRoomResponse.id())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(roomRequest)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roomCode").value("ROOM_A_UPDATED"))
                 .andDo(document("update-room",
                         pathParameters(
                                 parameterWithName("roomId").description("The ID of the room to update.")
@@ -140,38 +149,50 @@ public class RoomControllerTests {
     void activateDeactivateRoom() throws Exception {
         RoomActivationRequest activationRequest = new RoomActivationRequest(false);
 
-        Room deactivatedRoom = new Room(
-                sampleRoom.getId(),
-                sampleRoom.getRoomCode(),
-                sampleRoom.getPhysicalCapacity(),
-                sampleRoom.getLocation()
+        RoomResponse deactivatedRoomResponse = new RoomResponse(
+                sampleRoomResponse.id(),
+                sampleRoomResponse.roomCode(),
+                sampleRoomResponse.physicalCapacity(),
+                sampleRoomResponse.location(),
+                false,
+                sampleRoomResponse.createdAt(),
+                LocalDateTime.now()
         );
-        deactivatedRoom.deactivate();
 
         when(roomService.activateDeactivateRoom(any(UUID.class), any(Boolean.class)))
-                .thenReturn(deactivatedRoom);
+                .thenReturn(deactivatedRoomResponse);
 
-        this.mockMvc.perform(patch("/api/v1/rooms/{roomId}/activation", sampleRoom.getId())
+        this.mockMvc.perform(patch("/api/v1/rooms/{roomId}/activation", sampleRoomResponse.id())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(activationRequest)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false))
                 .andDo(document("activate-deactivate-room",
                         pathParameters(
                                 parameterWithName("roomId").description("The ID of the room to activate/deactivate.")
                         ),
                         requestFields(
                                 fieldWithPath("active").description("The desired active status for the room (true to activate, false to deactivate).")
+                        ),
+                        responseFields(
+                                fieldWithPath("id").description("The unique identifier of the room.").type(JsonFieldType.STRING),
+                                fieldWithPath("roomCode").description("The unique code for the room.").type(JsonFieldType.STRING),
+                                fieldWithPath("physicalCapacity").description("The physical capacity of the room.").type(JsonFieldType.NUMBER),
+                                fieldWithPath("location").description("The location of the room.").type(JsonFieldType.STRING),
+                                fieldWithPath("active").description("The active status of the room.").type(JsonFieldType.BOOLEAN),
+                                fieldWithPath("createdAt").description("The creation timestamp of the room.").type(JsonFieldType.STRING).optional(),
+                                fieldWithPath("updatedAt").description("The last update timestamp of the room.").type(JsonFieldType.STRING).optional()
                         )
                 ));
     }
 
     @Test
     void getRoomList() throws Exception {
-        List<Room> rooms = Arrays.asList(
-                sampleRoom,
-                new Room(UUID.randomUUID(), "ROOM_C", 20, "Building C, Ground Floor")
+        List<RoomResponse> roomResponses = Arrays.asList(
+                sampleRoomResponse,
+                new RoomResponse(UUID.randomUUID(), "ROOM_C", 20, "Building C, Ground Floor", true, LocalDateTime.now(), LocalDateTime.now())
         );
-        when(roomService.getRoomList()).thenReturn(rooms);
+        when(roomService.getRoomList()).thenReturn(roomResponses);
 
         this.mockMvc.perform(get("/api/v1/rooms")
                         .accept(MediaType.APPLICATION_JSON))
@@ -192,9 +213,9 @@ public class RoomControllerTests {
     @Test
     void getRoomDetail() throws Exception {
         when(roomService.getRoomDetail(any(UUID.class)))
-                .thenReturn(sampleRoom);
+                .thenReturn(sampleRoomResponse);
 
-        this.mockMvc.perform(get("/api/v1/rooms/{roomId}", sampleRoom.getId())
+        this.mockMvc.perform(get("/api/v1/rooms/{roomId}", sampleRoomResponse.id())
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andDo(document("get-room-detail",
