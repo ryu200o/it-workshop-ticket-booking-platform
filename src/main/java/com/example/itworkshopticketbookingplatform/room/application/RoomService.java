@@ -6,6 +6,7 @@ import com.example.itworkshopticketbookingplatform.room.domain.RoomNotFoundExcep
 import com.example.itworkshopticketbookingplatform.room.domain.RoomRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,12 +17,12 @@ public class RoomService {
 
     private final RoomRepository roomRepository;
 
-    public RoomService(RoomRepository roomRepository) {
+    public RoomService(@NonNull RoomRepository roomRepository) {
         this.roomRepository = roomRepository;
     }
 
-    public Room createRoom(String roomCode, int physicalCapacity, String location) {
-        roomRepository.findByRoomCode(roomCode).ifPresent(room -> {
+    public Room createRoom(@NonNull String roomCode, int physicalCapacity, @NonNull String location) {
+        roomRepository.findByRoomCode(roomCode).ifPresent(ignored -> {
             throw new DuplicateRoomCodeException(roomCode);
         });
 
@@ -29,12 +30,12 @@ public class RoomService {
         return roomRepository.save(newRoom);
     }
 
-    public Room updateRoom(UUID id, String roomCode, int physicalCapacity, String location) {
+    public Room updateRoom(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException(id));
 
         if (!room.getRoomCode().equals(roomCode)) {
-            roomRepository.findByRoomCode(roomCode).ifPresent(existingRoom -> {
+            roomRepository.findByRoomCode(roomCode).ifPresent(ignored -> {
                 throw new DuplicateRoomCodeException(roomCode);
             });
         }
@@ -46,7 +47,7 @@ public class RoomService {
         return roomRepository.save(room);
     }
 
-    public Room activateDeactivateRoom(UUID id, boolean active) {
+    public Room activateDeactivateRoom(@NonNull UUID id, boolean active) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException(id));
         if (active) {
@@ -58,7 +59,7 @@ public class RoomService {
     }
 
     @Transactional(readOnly = true)
-    public Room getRoomDetail(UUID id) {
+    public Room getRoomDetail(@NonNull UUID id) {
         return roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException(id));
     }

@@ -2,6 +2,7 @@ package com.example.itworkshopticketbookingplatform.room.infrastructure;
 
 import com.example.itworkshopticketbookingplatform.room.domain.Room;
 import com.example.itworkshopticketbookingplatform.room.domain.RoomRepository;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,22 +14,22 @@ public class RoomRepositoryImpl implements RoomRepository {
 
     private final RoomJpaRepository roomJpaRepository;
 
-    public RoomRepositoryImpl(RoomJpaRepository roomJpaRepository) {
+    public RoomRepositoryImpl(@NonNull RoomJpaRepository roomJpaRepository) {
         this.roomJpaRepository = roomJpaRepository;
     }
 
     @Override
-    public Room save(Room room) {
+    public Room save(@NonNull Room room) {
         return roomJpaRepository.save(room);
     }
 
     @Override
-    public Optional<Room> findById(UUID id) {
+    public Optional<Room> findById(@NonNull UUID id) {
         return roomJpaRepository.findById(id);
     }
 
     @Override
-    public Optional<Room> findByRoomCode(String roomCode) {
+    public Optional<Room> findByRoomCode(@NonNull String roomCode) {
         return roomJpaRepository.findByRoomCode(roomCode);
     }
 
