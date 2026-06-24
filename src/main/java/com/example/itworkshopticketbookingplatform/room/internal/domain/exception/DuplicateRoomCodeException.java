@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.room.domain;
+package com.example.itworkshopticketbookingplatform.room.internal.domain.exception;
 
 public class DuplicateRoomCodeException extends RuntimeException {
     public DuplicateRoomCodeException(String roomCode) {

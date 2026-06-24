@@ -1,5 +1,6 @@
-package com.example.itworkshopticketbookingplatform.room.domain;
+package com.example.itworkshopticketbookingplatform.room.internal.domain.repository;
 
+import com.example.itworkshopticketbookingplatform.room.internal.domain.model.Room;
 import org.jspecify.annotations.NonNull;
 import java.util.List;
 import java.util.Optional;

@@ -1,40 +1,25 @@
-package com.example.itworkshopticketbookingplatform.room.domain;
+package com.example.itworkshopticketbookingplatform.room.internal.domain.model;
 
-import jakarta.persistence.*;
+import com.example.itworkshopticketbookingplatform.room.internal.domain.exception.InvalidRoomCodeException;
+import com.example.itworkshopticketbookingplatform.room.internal.domain.exception.InvalidPhysicalCapacityException;
+import com.example.itworkshopticketbookingplatform.room.internal.domain.exception.InvalidLocationException;
+
 import org.jspecify.annotations.NonNull;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-@Entity
-@Table(name = "rooms")
 public class Room {
 
-    @Id
     private final UUID id;
-
-    @Column(name = "name", unique = true, nullable = false)
     private String roomCode;
-
-    @Column(name = "capacity", nullable = false)
     private int physicalCapacity;
-
-    @Column(name = "location", nullable = false)
     private String location;
-
-    @Column(name = "active", nullable = false)
     private boolean active;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected Room() {
-        this.id = null;
-    }
-
+    // Creation Constructor (automatically sets active=true, createdAt and updatedAt)
     public Room(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location) {
         this.id = Objects.requireNonNull(id, "Room ID cannot be null");
         requireValidRoomCode(roomCode);
@@ -45,6 +30,19 @@ public class Room {
         this.physicalCapacity = physicalCapacity;
         this.location = location;
         this.active = true;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // Persistence Reconstruction Constructor (sets historical timestamps)
+    public Room(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location, boolean active, @NonNull LocalDateTime createdAt, @NonNull LocalDateTime updatedAt) {
+        this.id = Objects.requireNonNull(id, "Room ID cannot be null");
+        this.roomCode = Objects.requireNonNull(roomCode, "Room code cannot be null");
+        this.physicalCapacity = physicalCapacity;
+        this.location = Objects.requireNonNull(location, "Location cannot be null");
+        this.active = active;
+        this.createdAt = Objects.requireNonNull(createdAt, "createdAt cannot be null");
+        this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt cannot be null");
     }
 
     private void requireValidRoomCode(@NonNull String code) {
@@ -68,34 +66,28 @@ public class Room {
     public void rename(@NonNull String newRoomCode) {
         requireValidRoomCode(newRoomCode);
         this.roomCode = newRoomCode;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void changeCapacity(int newCapacity) {
         requirePositiveCapacity(newCapacity);
         this.physicalCapacity = newCapacity;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void changeLocation(@NonNull String newLocation) {
         requireValidLocation(newLocation);
         this.location = newLocation;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void activate() {
         this.active = true;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void deactivate() {
         this.active = false;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 

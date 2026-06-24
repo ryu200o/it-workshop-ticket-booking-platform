@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.room.domain;
+package com.example.itworkshopticketbookingplatform.room.internal.domain.exception;
 
 import java.util.UUID;
 
