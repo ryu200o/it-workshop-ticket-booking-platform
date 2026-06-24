@@ -1,7 +1,7 @@
 package com.example.itworkshopticketbookingplatform.room.domain;
 
 import jakarta.persistence.*;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -11,7 +11,7 @@ import java.util.UUID;
 public class Room {
 
     @Id
-    private UUID id;
+    private final UUID id;
 
     @Column(name = "name", unique = true, nullable = false)
     private String roomCode;
@@ -32,6 +32,7 @@ public class Room {
     private LocalDateTime updatedAt;
 
     protected Room() {
+        this.id = null;
     }
 
     public Room(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location) {
@@ -46,9 +47,9 @@ public class Room {
         this.active = true;
     }
 
-    private void requireValidRoomCode(String code) {
-        if (code == null || code.isBlank()) {
-            throw new InvalidRoomCodeException("Room code cannot be null or blank");
+    private void requireValidRoomCode(@NonNull String code) {
+        if (code.isBlank()) {
+            throw new InvalidRoomCodeException("Room code cannot be blank");
         }
     }
 
@@ -58,9 +59,9 @@ public class Room {
         }
     }
 
-    private void requireValidLocation(String loc) {
-        if (loc == null || loc.isBlank()) {
-            throw new InvalidLocationException("Location cannot be null or blank");
+    private void requireValidLocation(@NonNull String loc) {
+        if (loc.isBlank()) {
+            throw new InvalidLocationException("Location cannot be blank");
         }
     }
 

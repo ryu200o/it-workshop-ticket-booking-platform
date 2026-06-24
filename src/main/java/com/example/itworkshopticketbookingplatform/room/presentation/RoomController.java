@@ -4,6 +4,7 @@ import com.example.itworkshopticketbookingplatform.room.application.RoomService;
 import com.example.itworkshopticketbookingplatform.room.domain.Room;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.jspecify.annotations.NonNull;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -18,12 +19,12 @@ public class RoomController {
 
     private final RoomService roomService;
 
-    public RoomController(RoomService roomService) {
+    public RoomController(@NonNull RoomService roomService) {
         this.roomService = roomService;
     }
 
     @PostMapping
-    public ResponseEntity<RoomResponse> createRoom(@Valid @RequestBody RoomRequest roomRequest) {
+    public ResponseEntity<RoomResponse> createRoom(@Valid @RequestBody @NonNull RoomRequest roomRequest) {
         Room room = roomService.createRoom(
                 roomRequest.roomCode(),
                 roomRequest.physicalCapacity(),
@@ -35,7 +36,7 @@ public class RoomController {
     }
 
     @PutMapping("/{roomId}")
-    public ResponseEntity<RoomResponse> updateRoom(@PathVariable UUID roomId, @Valid @RequestBody RoomRequest roomRequest) {
+    public ResponseEntity<RoomResponse> updateRoom(@PathVariable @NonNull UUID roomId, @Valid @RequestBody @NonNull RoomRequest roomRequest) {
         Room room = roomService.updateRoom(
                 roomId,
                 roomRequest.roomCode(),
@@ -46,7 +47,7 @@ public class RoomController {
     }
 
     @PatchMapping("/{roomId}/activation")
-    public ResponseEntity<Void> activateDeactivateRoom(@PathVariable UUID roomId, @Valid @RequestBody RoomActivationRequest activationRequest) {
+    public ResponseEntity<Void> activateDeactivateRoom(@PathVariable @NonNull UUID roomId, @Valid @RequestBody @NonNull RoomActivationRequest activationRequest) {
         roomService.activateDeactivateRoom(roomId, activationRequest.active());
         return ResponseEntity.ok().build();
     }
@@ -60,7 +61,7 @@ public class RoomController {
     }
 
     @GetMapping("/{roomId}")
-    public ResponseEntity<RoomResponse> getRoomDetail(@PathVariable UUID roomId) {
+    public ResponseEntity<RoomResponse> getRoomDetail(@PathVariable @NonNull UUID roomId) {
         Room room = roomService.getRoomDetail(roomId);
         return ResponseEntity.ok(new RoomResponse(room));
     }
