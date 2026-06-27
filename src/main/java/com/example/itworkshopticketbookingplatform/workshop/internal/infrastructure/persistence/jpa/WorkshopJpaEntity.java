@@ -1,5 +1,6 @@
 package com.example.itworkshopticketbookingplatform.workshop.internal.infrastructure.persistence.jpa;
 
+import com.example.itworkshopticketbookingplatform.workshop.internal.domain.model.WorkshopState;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
@@ -35,7 +36,7 @@ public class WorkshopJpaEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 20)
-    private String state;
+    private WorkshopState state;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -48,7 +49,7 @@ public class WorkshopJpaEntity {
 
     public WorkshopJpaEntity(UUID id, String title, String description, UUID roomId,
                             String roomDisplayNameSnapshot, Instant startTime, Instant endTime,
-                            int capacity, String state, Instant createdAt, Instant updatedAt) {
+                            int capacity, WorkshopState state, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -87,8 +88,8 @@ public class WorkshopJpaEntity {
     public int getCapacity() { return capacity; }
     public void setCapacity(int capacity) { this.capacity = capacity; }
 
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
+    public WorkshopState getState() { return state; }
+    public void setState(WorkshopState state) { this.state = state; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

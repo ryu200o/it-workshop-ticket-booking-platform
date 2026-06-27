@@ -8,6 +8,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
+import java.util.UUID;
+
 @Mapper(componentModel = "spring")
 public interface WorkshopMapper {
 
@@ -17,6 +19,10 @@ public interface WorkshopMapper {
     @Mapping(target = "state", source = "state")
     WorkshopResponse toResponse(Workshop workshop);
 
-    @Mapping(target = "id", source = "workshopId")
+    @Mapping(target = "id", expression = "java(workshopId.value())")
     WorkshopResponse toResponseWithId(Workshop workshop, WorkshopId workshopId);
+
+    default UUID map(WorkshopId value) {
+        return value != null ? value.value() : null;
+    }
 }

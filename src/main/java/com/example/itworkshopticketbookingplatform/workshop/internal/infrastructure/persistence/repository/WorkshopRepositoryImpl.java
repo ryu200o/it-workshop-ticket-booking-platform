@@ -73,7 +73,7 @@ public class WorkshopRepositoryImpl implements WorkshopRepository {
                 workshop.getStartTime(),
                 workshop.getEndTime(),
                 workshop.getCapacity(),
-                workshop.getState().name(),
+                workshop.getState(),
                 workshop.getCreatedAt(),
                 workshop.getUpdatedAt()
         );
@@ -89,7 +89,7 @@ public class WorkshopRepositoryImpl implements WorkshopRepository {
                 entity.getStartTime(),
                 entity.getEndTime(),
                 entity.getCapacity(),
-                WorkshopState.valueOf(entity.getState()),
+                entity.getState(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

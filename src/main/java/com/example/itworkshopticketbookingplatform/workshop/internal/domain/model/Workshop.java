@@ -1,5 +1,6 @@
 package com.example.itworkshopticketbookingplatform.workshop.internal.domain.model;
 
+import com.example.itworkshopticketbookingplatform.workshop.internal.domain.exception.InvalidWorkshopStateException;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -268,9 +269,9 @@ public class Workshop {
 
     /**
      * Creates Workshop instance from persistence data.
-     * Package-private - only infrastructure layer should use this.
+     * Used by infrastructure layer for rehydration.
      */
-    static Workshop fromPersistence(WorkshopId id,
+    public static Workshop fromPersistence(WorkshopId id,
                                     String title,
                                     String description,
                                     UUID roomId,
