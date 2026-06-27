@@ -14,11 +14,12 @@ The project is structured using Spring Modulith, promoting a modular and cohesiv
 
 ### Standard Module Structure
 Each module should follow a consistent directory structure, typically including:
-- `api/`: Public contracts for inter-module communication (interfaces, DTOs, events). This contains only public-facing types and interfaces.
+- **Module root**: Public contracts for inter-module communication (interfaces, DTOs, events). This contains only public-facing types and interfaces (e.g., `RoomService`, `RoomRequest`, `RoomResponse`).
 - `internal/`: Contains internal implementation details that are not exposed to other modules directly.
-- `application/`: Orchestrates business logic, handles use cases, and coordinates across domain entities and infrastructure services. It defines DTOs for input and output.
-- `domain/`: Contains the core business logic, entities, value objects, and domain services. This layer should be framework-free and focus solely on business rules, independent of persistence or other infrastructure concerns.
-- `infrastructure/`: Provides technical capabilities like persistence (e.g., Spring Data repositories and JPA entity mappings), messaging, and external API integrations.
+  - `application/`: Orchestrates business logic, handles use cases, and coordinates across domain entities and infrastructure services. It defines DTOs for input and output.
+  - `domain/`: Contains the core business logic, entities, value objects, and domain services. This layer should be framework-free and focus solely on business rules, independent of persistence or other infrastructure concerns.
+  - `infrastructure/`: Provides technical capabilities like persistence (e.g., Spring Data repositories and JPA entity mappings), messaging, and external API integrations.
+  - `presentation/`: Contains controllers and web-layer adapters.
 
 ## Guidelines for AI When Generating Code
 
@@ -37,7 +38,7 @@ Each module should follow a consistent directory structure, typically including:
 ## Allowed Patterns
 
 - **Mappers in Application Layer**: Use mapping frameworks (e.g., MapStruct) to convert between DTOs and entities. Mappers should reside in the application layer.
-- **DTOs in `application/dto`**: All Data Transfer Objects (DTOs) should be defined within the `application/dto` package of their respective module.
+- **DTOs at module root**: All Data Transfer Objects (DTOs) for public API should be defined at the module root (e.g., `RoomRequest`, `RoomResponse`). Internal DTOs used only within the application layer may reside in `internal/application/dto/`.
 - **Repositories return Entities**: Repository interfaces (defined in the domain layer) and their implementations (in the infrastructure layer) should return domain entities.
 
 ## Forbidden Patterns
