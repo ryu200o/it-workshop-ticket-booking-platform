@@ -1,13 +1,8 @@
-package com.example.itworkshopticketbookingplatform.workshop;
+package com.example.itworkshopticketbookingplatform.workshop.internal;
 
-import com.example.itworkshopticketbookingplatform.workshop.internal.application.mapper.WorkshopMapper;
-import com.example.itworkshopticketbookingplatform.workshop.internal.application.service.WorkshopServiceImpl;
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.event.*;
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.exception.InvalidWorkshopStateException;
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.model.Workshop;
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.model.WorkshopId;
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.model.WorkshopState;
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.repository.WorkshopRepository;
+import com.example.itworkshopticketbookingplatform.workshop.WorkshopRequest;
+import com.example.itworkshopticketbookingplatform.workshop.WorkshopResponse;
+import com.example.itworkshopticketbookingplatform.workshop.WorkshopEvents;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -41,9 +36,6 @@ class WorkshopServiceIntegrationTests {
     private WorkshopRepository workshopRepository;
 
     @Mock
-    private WorkshopMapper workshopMapper;
-
-    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
@@ -53,7 +45,7 @@ class WorkshopServiceIntegrationTests {
     private ArgumentCaptor<Workshop> workshopCaptor;
 
     private static final String WORKSHOP_ID = UUID.randomUUID().toString();
-    private static final WorkshopId WORKSHOP_ID_OBJ = WorkshopId.of(WORKSHOP_ID);
+    private static final UUID WORKSHOP_UUID = UUID.fromString(WORKSHOP_ID);
     private static final String ROOM_ID = UUID.randomUUID().toString();
     private static final UUID ROOM_UUID = UUID.fromString(ROOM_ID);
     private static final Instant START_TIME = Instant.now().plusSeconds(3600);
@@ -68,21 +60,38 @@ class WorkshopServiceIntegrationTests {
     @BeforeEach
     void setUp() {
         draftWorkshop = Workshop.createDraft("Draft Title", "Draft Description");
+        // Use reflection to set the ID for consistency
+        setWorkshopId(draftWorkshop, WORKSHOP_UUID);
+
         publishedWorkshop = Workshop.createDraft("Published Title", "Published Description");
+        setWorkshopId(publishedWorkshop, WORKSHOP_UUID);
         publishedWorkshop.schedule(ROOM_UUID, "Room A", START_TIME, END_TIME, CAPACITY);
         publishedWorkshop.publish(publishedWorkshop.getRoomId(), publishedWorkshop.getRoomDisplayNameSnapshot(),
                 publishedWorkshop.getStartTime(), publishedWorkshop.getEndTime(), publishedWorkshop.getCapacity());
+
         inProgressWorkshop = Workshop.createDraft("In Progress Title", "IP Description");
+        setWorkshopId(inProgressWorkshop, WORKSHOP_UUID);
         inProgressWorkshop.schedule(ROOM_UUID, "Room A", START_TIME, END_TIME, CAPACITY);
         inProgressWorkshop.publish(inProgressWorkshop.getRoomId(), inProgressWorkshop.getRoomDisplayNameSnapshot(),
                 inProgressWorkshop.getStartTime(), inProgressWorkshop.getEndTime(), inProgressWorkshop.getCapacity());
         inProgressWorkshop.start();
 
         sampleResponse = new WorkshopResponse(
-                UUID.fromString(WORKSHOP_ID), "Title", "Description",
+                WORKSHOP_UUID, "Title", "Description",
                 ROOM_UUID, "Room A", START_TIME, END_TIME, CAPACITY,
                 "DRAFT", Instant.now(), Instant.now()
         );
+    }
+
+    private void setWorkshopId(Workshop workshop, UUID id) {
+        // Use reflection to set the final id field for testing
+        try {
+            var field = Workshop.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(workshop, id);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // ================================================================
@@ -98,7 +107,6 @@ class WorkshopServiceIntegrationTests {
         void shouldCreateDraftAndPersist() {
             var request = new WorkshopRequest("New Workshop", "New description");
             when(workshopRepository.save(any(Workshop.class))).thenReturn(draftWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.createDraft(request);
 
@@ -133,9 +141,8 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should update content of draft workshop")
         void shouldUpdateContentInDraft() {
             var request = new WorkshopRequest("Updated Title", "Updated description");
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(draftWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(draftWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(draftWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.updateContent(WORKSHOP_ID, request);
 
@@ -151,9 +158,8 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should update content of published workshop")
         void shouldUpdateContentInPublished() {
             var request = new WorkshopRequest("Updated Title", "Updated description");
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(publishedWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(publishedWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(publishedWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.updateContent(WORKSHOP_ID, request);
 
@@ -165,7 +171,7 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.empty());
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             var request = new WorkshopRequest("Title", "Description");
 
             assertThrows(IllegalArgumentException.class,
@@ -175,7 +181,7 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should throw when updating content of in-progress workshop")
         void shouldThrowWhenInProgress() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(inProgressWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(inProgressWorkshop));
             var request = new WorkshopRequest("Title", "Description");
 
             assertThrows(InvalidWorkshopStateException.class,
@@ -194,9 +200,8 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should schedule draft workshop")
         void shouldScheduleDraftWorkshop() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(draftWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(draftWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(draftWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.schedule(WORKSHOP_ID, START_TIME, END_TIME, CAPACITY, ROOM_ID);
 
@@ -210,7 +215,7 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.empty());
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             assertThrows(IllegalArgumentException.class,
                     () -> workshopService.schedule(WORKSHOP_ID, START_TIME, END_TIME, CAPACITY, ROOM_ID));
         }
@@ -227,34 +232,31 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should publish scheduled draft workshop and emit event")
         void shouldPublishAndEmitEvent() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(draftWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(draftWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(draftWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             workshopService.schedule(WORKSHOP_ID, START_TIME, END_TIME, CAPACITY, ROOM_ID);
 
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(draftWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(draftWorkshop));
             when(workshopRepository.existsByRoomIdAndTimeRange(any(), any(), any())).thenReturn(false);
             when(workshopRepository.save(any(Workshop.class))).thenReturn(draftWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.publish(WORKSHOP_ID);
 
             assertNotNull(result);
             assertEquals(WorkshopState.PUBLISHED, draftWorkshop.getState());
-            verify(eventPublisher).publishEvent(any(WorkshopPublishedEvent.class));
+            verify(eventPublisher).publishEvent(any(WorkshopEvents.Published.class));
         }
 
         @Test
         @DisplayName("should throw when room conflict detected")
         void shouldThrowOnRoomConflict() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(draftWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(draftWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(draftWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             workshopService.schedule(WORKSHOP_ID, START_TIME, END_TIME, CAPACITY, ROOM_ID);
 
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(draftWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(draftWorkshop));
             when(workshopRepository.existsByRoomIdAndTimeRange(any(), any(), any())).thenReturn(true);
 
             assertThrows(IllegalStateException.class,
@@ -264,7 +266,7 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.empty());
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             assertThrows(IllegalArgumentException.class,
                     () -> workshopService.publish(WORKSHOP_ID));
         }
@@ -286,16 +288,15 @@ class WorkshopServiceIntegrationTests {
             Instant newStart = Instant.now().plusSeconds(10000);
             Instant newEnd = Instant.now().plusSeconds(14000);
 
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(publishedWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(publishedWorkshop));
             when(workshopRepository.existsByRoomIdAndTimeRangeExcluding(any(), any(), any(), any())).thenReturn(false);
             when(workshopRepository.save(any(Workshop.class))).thenReturn(publishedWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.reschedule(WORKSHOP_ID, newStart, newEnd, newRoomIdStr);
 
             assertNotNull(result);
-            verify(eventPublisher).publishEvent(any(WorkshopRescheduledEvent.class));
-            verify(eventPublisher).publishEvent(any(WorkshopRoomChangedEvent.class));
+            verify(eventPublisher).publishEvent(any(WorkshopEvents.Rescheduled.class));
+            verify(eventPublisher).publishEvent(any(WorkshopEvents.RoomChanged.class));
         }
 
         @Test
@@ -304,15 +305,14 @@ class WorkshopServiceIntegrationTests {
             Instant newStart = Instant.now().plusSeconds(10000);
             Instant newEnd = Instant.now().plusSeconds(14000);
 
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(publishedWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(publishedWorkshop));
             when(workshopRepository.existsByRoomIdAndTimeRangeExcluding(any(), any(), any(), any())).thenReturn(false);
             when(workshopRepository.save(any(Workshop.class))).thenReturn(publishedWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             workshopService.reschedule(WORKSHOP_ID, newStart, newEnd, ROOM_ID);
 
-            verify(eventPublisher).publishEvent(any(WorkshopRescheduledEvent.class));
-            verify(eventPublisher, never()).publishEvent(any(WorkshopRoomChangedEvent.class));
+            verify(eventPublisher).publishEvent(any(WorkshopEvents.Rescheduled.class));
+            verify(eventPublisher, never()).publishEvent(any(WorkshopEvents.RoomChanged.class));
         }
 
         @Test
@@ -321,7 +321,7 @@ class WorkshopServiceIntegrationTests {
             Instant newStart = Instant.now().plusSeconds(10000);
             Instant newEnd = Instant.now().plusSeconds(14000);
 
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(publishedWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(publishedWorkshop));
             when(workshopRepository.existsByRoomIdAndTimeRangeExcluding(any(), any(), any(), any())).thenReturn(true);
 
             assertThrows(IllegalStateException.class,
@@ -331,7 +331,7 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.empty());
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             assertThrows(IllegalArgumentException.class,
                     () -> workshopService.reschedule(WORKSHOP_ID, START_TIME, END_TIME, ROOM_ID));
         }
@@ -348,21 +348,20 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should start published workshop and emit event")
         void shouldStartAndEmitEvent() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(publishedWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(publishedWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(publishedWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.start(WORKSHOP_ID);
 
             assertNotNull(result);
             assertEquals(WorkshopState.IN_PROGRESS, publishedWorkshop.getState());
-            verify(eventPublisher).publishEvent(any(WorkshopStartedEvent.class));
+            verify(eventPublisher).publishEvent(any(WorkshopEvents.Started.class));
         }
 
         @Test
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.empty());
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             assertThrows(IllegalArgumentException.class,
                     () -> workshopService.start(WORKSHOP_ID));
         }
@@ -370,7 +369,7 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should throw when starting from DRAFT")
         void shouldThrowWhenStartingFromDraft() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(draftWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(draftWorkshop));
             assertThrows(InvalidWorkshopStateException.class,
                     () -> workshopService.start(WORKSHOP_ID));
         }
@@ -387,21 +386,20 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should complete in-progress workshop and emit event")
         void shouldCompleteAndEmitEvent() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(inProgressWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(inProgressWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(inProgressWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.complete(WORKSHOP_ID);
 
             assertNotNull(result);
             assertEquals(WorkshopState.COMPLETED, inProgressWorkshop.getState());
-            verify(eventPublisher).publishEvent(any(WorkshopCompletedEvent.class));
+            verify(eventPublisher).publishEvent(any(WorkshopEvents.Completed.class));
         }
 
         @Test
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.empty());
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             assertThrows(IllegalArgumentException.class,
                     () -> workshopService.complete(WORKSHOP_ID));
         }
@@ -409,7 +407,7 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should throw when completing from PUBLISHED")
         void shouldThrowWhenCompletingFromPublished() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(publishedWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(publishedWorkshop));
             assertThrows(InvalidWorkshopStateException.class,
                     () -> workshopService.complete(WORKSHOP_ID));
         }
@@ -426,34 +424,32 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should cancel published workshop and emit event")
         void shouldCancelAndEmitEvent() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(publishedWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(publishedWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(publishedWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             var result = workshopService.cancel(WORKSHOP_ID);
 
             assertNotNull(result);
             assertEquals(WorkshopState.CANCELLED, publishedWorkshop.getState());
-            verify(eventPublisher).publishEvent(any(WorkshopCancelledEvent.class));
+            verify(eventPublisher).publishEvent(any(WorkshopEvents.Cancelled.class));
         }
 
         @Test
         @DisplayName("should cancel draft workshop")
         void shouldCancelDraft() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(draftWorkshop));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(draftWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(draftWorkshop);
-            when(workshopMapper.toResponse(any(Workshop.class))).thenReturn(sampleResponse);
 
             workshopService.cancel(WORKSHOP_ID);
 
             assertEquals(WorkshopState.CANCELLED, draftWorkshop.getState());
-            verify(eventPublisher).publishEvent(any(WorkshopCancelledEvent.class));
+            verify(eventPublisher).publishEvent(any(WorkshopEvents.Cancelled.class));
         }
 
         @Test
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.empty());
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             assertThrows(IllegalArgumentException.class,
                     () -> workshopService.cancel(WORKSHOP_ID));
         }
@@ -468,7 +464,7 @@ class WorkshopServiceIntegrationTests {
             completed.start();
             completed.complete();
 
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(completed));
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(completed));
             assertThrows(InvalidWorkshopStateException.class,
                     () -> workshopService.cancel(WORKSHOP_ID));
         }
@@ -485,20 +481,19 @@ class WorkshopServiceIntegrationTests {
         @Test
         @DisplayName("should return workshop when found")
         void shouldReturnWorkshopWhenFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.of(publishedWorkshop));
-            when(workshopMapper.toResponse(publishedWorkshop)).thenReturn(sampleResponse);
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(publishedWorkshop));
 
             var result = workshopService.findById(WORKSHOP_ID);
 
             assertNotNull(result);
-            assertEquals(sampleResponse.id(), result.id());
-            verify(workshopRepository).findById(WORKSHOP_ID_OBJ);
+            assertEquals(WORKSHOP_UUID, result.id());
+            verify(workshopRepository).findById(WORKSHOP_UUID);
         }
 
         @Test
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
-            when(workshopRepository.findById(WORKSHOP_ID_OBJ)).thenReturn(Optional.empty());
+            when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             assertThrows(IllegalArgumentException.class,
                     () -> workshopService.findById(WORKSHOP_ID));
         }
@@ -518,7 +513,6 @@ class WorkshopServiceIntegrationTests {
             var pageable = PageRequest.of(0, 20);
             var workshopPage = new PageImpl<Workshop>(List.of(publishedWorkshop), pageable, 1);
             when(workshopRepository.findAll(any(Pageable.class))).thenReturn(workshopPage);
-            when(workshopMapper.toResponse(publishedWorkshop)).thenReturn(sampleResponse);
 
             Page<WorkshopResponse> result = workshopService.findAll(pageable);
 

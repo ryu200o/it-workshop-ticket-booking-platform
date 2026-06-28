@@ -1,8 +1,5 @@
-package com.example.itworkshopticketbookingplatform.workshop;
+package com.example.itworkshopticketbookingplatform.workshop.internal;
 
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.exception.InvalidWorkshopStateException;
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.model.Workshop;
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.model.WorkshopState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -625,18 +622,18 @@ class WorkshopTest {
     // ================================================================
 
     @Nested
-    @DisplayName("fromPersistence")
+    @DisplayName("rehydration from persistence")
     class FromPersistenceTests {
 
         @Test
         @DisplayName("should rehydrate workshop from persistence data")
         void shouldRehydrateFromPersistence() {
-            var id = com.example.itworkshopticketbookingplatform.workshop.internal.domain.model.WorkshopId.generate();
+            var id = UUID.randomUUID();
             var now = Instant.now();
             var start = now.plusSeconds(3600);
             var end = now.plusSeconds(7200);
 
-            var workshop = Workshop.fromPersistence(id, "Title", "Description",
+            var workshop = new Workshop(id, "Title", "Description",
                     ROOM_ID, ROOM_NAME, start, end, CAPACITY,
                     WorkshopState.PUBLISHED, now, now);
 

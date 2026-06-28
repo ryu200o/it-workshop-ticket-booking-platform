@@ -15,44 +15,29 @@ workshop/
 ├── WorkshopService.java              # Public service interface
 ├── WorkshopRequest.java              # Public DTO (input)
 ├── WorkshopResponse.java             # Public DTO (output)
+├── WorkshopEvents.java               # Public event namespace (sealed interface)
 ├── package-info.java                 # @ApplicationModule(allowedDependencies = {"room"})
-└── internal/
-    ├── application/
-    │   ├── dto/                      # Internal DTOs (e.g., WorkshopPageRequest)
-    │   ├── mapper/                   # MapStruct mappers (DTO <-> Entity)
-    │   └── service/
-    │       └── WorkshopServiceImpl.java
-    ├── domain/
-    │   ├── event/                    # Domain events (6 events, internal)
-    │   ├── exception/                # Domain exceptions
-    │   ├── model/
-    │   │   ├── Workshop.java         # Aggregate Root
-    │   │   ├── WorkshopId.java       # Value Object (UUID wrapper)
-    │   │   └── WorkshopState.java    # State enum
-    │   └── repository/
-    │       └── WorkshopRepository.java  # Domain port (framework-free)
-    ├── infrastructure/
-    │   └── persistence/
-    │       ├── jpa/
-    │       │   ├── WorkshopJpaEntity.java
-    │       │   └── WorkshopJpaRepository.java  # Spring Data interface
-    │       └── repository/
-    │           └── WorkshopRepositoryImpl.java  # Adapter
-    └── presentation/
-        └── controller/
-            ├── WorkshopController.java
-            └── WorkshopControllerAdvice.java
+└── internal/                         # Black-box zone (all package-private)
+    ├── Workshop.java                 # @Entity (JPA) with business logic
+    ├── WorkshopState.java            # State enum
+    ├── WorkshopRepository.java       # Spring Data JPA interface (extends JpaRepository)
+    ├── WorkshopServiceImpl.java      # Business logic + event publishing
+    ├── WorkshopController.java       # REST endpoints
+    ├── WorkshopControllerAdvice.java # Error handling
+    ├── WorkshopPageRequest.java      # Internal DTO for pagination
+    └── InvalidWorkshopStateException.java
 ```
 
 ### Public API (Module Root)
 
-Only three types are exposed to other modules:
+Four types are exposed to other modules:
 
 | Type | Description |
 |------|-------------|
 | `WorkshopService` | Public service interface -- the single entry point for all workshop operations |
 | `WorkshopRequest` | Public input DTO (title, description) with Jakarta Validation |
 | `WorkshopResponse` | Public output DTO containing all workshop fields |
+| `WorkshopEvents` | Public event namespace with sealed interface and 6 event records |
 
 All other types reside under `internal/` and are not accessible from outside the module.
 
@@ -63,6 +48,17 @@ All other types reside under `internal/` and are not accessible from outside the
 | `room` | Workshop -> Room | Room conflict validation during schedule/publish/reschedule |
 
 Declared via `@ApplicationModule(allowedDependencies = {"room"})` in `package-info.java`.
+
+---
+
+## One Entity = One Class
+
+The `Workshop` entity is both the domain model and the JPA persistence class. There are **no separate JPA entity classes, no mapper classes, and no repository implementation classes**.
+
+- `Workshop.java` carries `@Entity`, `@Id`, `@Column` annotations directly
+- `WorkshopRepository` extends `JpaRepository<Workshop, UUID>` directly
+- Services construct response DTOs inline from entity getters (no mapper)
+- Package-private constructors prevent instantiation outside the module
 
 ---
 
@@ -112,16 +108,18 @@ record WorkshopResponse(
 
 ## Domain Events
 
-Six domain events are published via `ApplicationEventPublisher` within `@Transactional` context. All events are **internal** (located in `internal/domain/event/`), consumed by other modules via `@ApplicationModuleListener`.
+Six domain events are published via `ApplicationEventPublisher` within `@Transactional` context. All events are consolidated into the `WorkshopEvents` namespace at the module root using a sealed interface and records.
 
 | # | Event | Trigger | Key Payload |
 |---|-------|---------|-------------|
-| 1 | `WorkshopPublishedEvent` | `publish()` succeeds | workshopId, title, startTime, endTime, capacity, roomId, roomDisplayNameSnapshot, publishedAt |
-| 2 | `WorkshopRescheduledEvent` | `reschedule()` succeeds | workshopId, oldStartTime, newStartTime, oldEndTime, newEndTime, roomIdChanged, newRoomDisplayName, rescheduledAt |
-| 3 | `WorkshopRoomChangedEvent` | `reschedule()` changes roomId | workshopId, oldRoomId, newRoomId, newRoomDisplayName, changedAt |
-| 4 | `WorkshopStartedEvent` | `start()` succeeds | workshopId, startedAt |
-| 5 | `WorkshopCompletedEvent` | `complete()` succeeds | workshopId, completedAt |
-| 6 | `WorkshopCancelledEvent` | `cancel()` succeeds | workshopId, cancelledAt, reason |
+| 1 | `WorkshopEvents.Published` | `publish()` succeeds | workshopId, title, startTime, endTime, capacity, roomId, roomDisplayNameSnapshot, occurredAt |
+| 2 | `WorkshopEvents.Rescheduled` | `reschedule()` succeeds | workshopId, oldStartTime, newStartTime, oldEndTime, newEndTime, roomIdChanged, newRoomDisplayName, occurredAt |
+| 3 | `WorkshopEvents.RoomChanged` | `reschedule()` changes roomId | workshopId, oldRoomId, newRoomId, newRoomDisplayName, occurredAt |
+| 4 | `WorkshopEvents.Started` | `start()` succeeds | workshopId, occurredAt |
+| 5 | `WorkshopEvents.Completed` | `complete()` succeeds | workshopId, occurredAt |
+| 6 | `WorkshopEvents.Cancelled` | `cancel()` succeeds | workshopId, reason, occurredAt |
+
+Events are consumed by other modules via `@ApplicationModuleListener`.
 
 ---
 
@@ -212,17 +210,17 @@ Terminal states (`COMPLETED`, `CANCELLED`) allow no outgoing transitions. All in
 - Allows state representation changes without breaking API contracts
 - Maintains consistency across modules
 
-### Domain Entity Is Framework-Free
+### One Entity = One Class
 
-The `Workshop` entity contains **no framework annotations** (no JPA, no Spring). All invariants are enforced within the entity constructor and methods. Persistence mapping is handled entirely in the infrastructure layer via `WorkshopJpaEntity` and `WorkshopRepositoryImpl`.
+The `Workshop` entity carries JPA annotations directly. There is no separate `WorkshopJpaEntity`, no `WorkshopMapper`, and no `WorkshopRepositoryImpl`. Spring Data JPA auto-generates the repository implementation. Services construct DTOs inline from entity getters.
 
 ### Instant for All Temporal Fields
 
 All temporal fields (`startTime`, `endTime`, `createdAt`, `updatedAt`) use `java.time.Instant`, mapping to `TIMESTAMP WITH TIME ZONE` in the database. This is timezone-aware and compliant with the Architecture Baseline v2.
 
-### Events Are Internal Domain Concepts
+### Events as Sealed Interface Namespace
 
-Domain events live in `internal/domain/event/`, not at the module root. They are internal implementation details published via `ApplicationEventPublisher` and consumed by other modules via `@ApplicationModuleListener`.
+All 6 domain events are consolidated into a single `WorkshopEvents.java` namespace at the module root. A sealed `WorkshopEvent` interface enforces that all events share `workshopId()` and `occurredAt()` attributes. This replaces scattered individual event files and improves discoverability.
 
 ---
 
@@ -236,7 +234,7 @@ Table: `workshop`
 | `title` | `VARCHAR(200)` | Not null |
 | `description` | `TEXT` | Nullable, max 2000 chars |
 | `room_id` | `UUID` | Logical reference to Room (no FK constraint) |
-| `room_display_name_snapshot` | `VARCHAR(255)` | Denormalized snapshot |
+| `room_display_name_snapshot` | `VARCHAR(200)` | Denormalized snapshot |
 | `start_time` | `TIMESTAMP WITH TIME ZONE` | |
 | `end_time` | `TIMESTAMP WITH TIME ZONE` | |
 | `capacity` | `INTEGER` | Business capacity (0 < capacity <= Room.capacity) |
@@ -253,7 +251,7 @@ No cross-module foreign keys. Room reference is a logical UUID only.
 | Test Type | Class | Coverage |
 |-----------|-------|----------|
 | Unit Tests | `WorkshopTest` | Domain model, state machine, all valid/invalid transitions, publishing invariants |
-| Integration Tests | `WorkshopServiceIntegrationTests` | Service layer with mocked RoomService, event publishing verification |
+| Integration Tests | `WorkshopServiceIntegrationTests` | Service layer with mocked repository, event publishing verification |
 | API Tests | `WorkshopControllerTests` | All 10 REST endpoints with `@Valid` verification via MockMvc |
 
 **Total: 105 tests, all passing.**
