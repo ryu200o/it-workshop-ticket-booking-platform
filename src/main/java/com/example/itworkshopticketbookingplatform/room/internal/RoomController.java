@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.room.internal.presentation.controller;
+package com.example.itworkshopticketbookingplatform.room.internal;
 
 import com.example.itworkshopticketbookingplatform.room.RoomService;
 import com.example.itworkshopticketbookingplatform.room.RoomActivationRequest;
@@ -17,16 +17,16 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/rooms")
-public class RoomController {
+class RoomController {
 
     private final RoomService roomService;
 
-    public RoomController(@NonNull RoomService roomService) {
+    RoomController(@NonNull RoomService roomService) {
         this.roomService = roomService;
     }
 
     @PostMapping
-    public ResponseEntity<RoomResponse> createRoom(@Valid @RequestBody @NonNull RoomRequest roomRequest) {
+    ResponseEntity<RoomResponse> createRoom(@Valid @RequestBody @NonNull RoomRequest roomRequest) {
         RoomResponse roomResponse = roomService.createRoom(
                 roomRequest.roomCode(),
                 roomRequest.physicalCapacity(),
@@ -38,7 +38,7 @@ public class RoomController {
     }
 
     @PutMapping("/{roomId}")
-    public ResponseEntity<RoomResponse> updateRoom(@PathVariable @NonNull UUID roomId, @Valid @RequestBody @NonNull RoomRequest roomRequest) {
+    ResponseEntity<RoomResponse> updateRoom(@PathVariable @NonNull UUID roomId, @Valid @RequestBody @NonNull RoomRequest roomRequest) {
         RoomResponse roomResponse = roomService.updateRoom(
                 roomId,
                 roomRequest.roomCode(),
@@ -49,19 +49,19 @@ public class RoomController {
     }
 
     @PatchMapping("/{roomId}/activation")
-    public ResponseEntity<RoomResponse> activateDeactivateRoom(@PathVariable @NonNull UUID roomId, @Valid @RequestBody @NonNull RoomActivationRequest activationRequest) {
+    ResponseEntity<RoomResponse> activateDeactivateRoom(@PathVariable @NonNull UUID roomId, @Valid @RequestBody @NonNull RoomActivationRequest activationRequest) {
         RoomResponse roomResponse = roomService.activateDeactivateRoom(roomId, activationRequest.active());
         return ResponseEntity.ok(roomResponse);
     }
 
     @GetMapping
-    public ResponseEntity<List<RoomResponse>> getRoomList() {
+    ResponseEntity<List<RoomResponse>> getRoomList() {
         List<RoomResponse> roomResponses = roomService.getRoomList();
         return ResponseEntity.ok(roomResponses);
     }
 
     @GetMapping("/{roomId}")
-    public ResponseEntity<RoomResponse> getRoomDetail(@PathVariable @NonNull UUID roomId) {
+    ResponseEntity<RoomResponse> getRoomDetail(@PathVariable @NonNull UUID roomId) {
         RoomResponse roomResponse = roomService.getRoomDetail(roomId);
         return ResponseEntity.ok(roomResponse);
     }

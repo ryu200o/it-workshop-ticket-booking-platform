@@ -1,31 +1,47 @@
-package com.example.itworkshopticketbookingplatform.room.internal.domain.model;
+package com.example.itworkshopticketbookingplatform.room.internal;
 
-import com.example.itworkshopticketbookingplatform.room.internal.domain.exception.InvalidRoomCodeException;
-import com.example.itworkshopticketbookingplatform.room.internal.domain.exception.InvalidPhysicalCapacityException;
-import com.example.itworkshopticketbookingplatform.room.internal.domain.exception.InvalidLocationException;
-
+import jakarta.persistence.*;
 import org.jspecify.annotations.NonNull;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-public class Room {
+@Entity
+@Table(name = "rooms")
+class Room {
 
-    private final UUID id;
+    @Id
+    @Column(name = "id", nullable = false)
+    private UUID id;
+
+    @Column(name = "name", unique = true, nullable = false)
     private String roomCode;
+
+    @Column(name = "capacity", nullable = false)
     private int physicalCapacity;
+
+    @Column(name = "location", nullable = false)
     private String location;
+
+    @Column(name = "active", nullable = false)
     private boolean active;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // No-args constructor for JPA
+    protected Room() {}
+
     // Creation Constructor (automatically sets active=true, createdAt and updatedAt)
-    public Room(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location) {
+    Room(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location) {
         this.id = Objects.requireNonNull(id, "Room ID cannot be null");
         requireValidRoomCode(roomCode);
         requirePositiveCapacity(physicalCapacity);
         requireValidLocation(location);
-        
+
         this.roomCode = roomCode;
         this.physicalCapacity = physicalCapacity;
         this.location = location;
@@ -35,7 +51,7 @@ public class Room {
     }
 
     // Persistence Reconstruction Constructor (sets historical timestamps)
-    public Room(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location, boolean active, @NonNull LocalDateTime createdAt, @NonNull LocalDateTime updatedAt) {
+    Room(@NonNull UUID id, @NonNull String roomCode, int physicalCapacity, @NonNull String location, boolean active, @NonNull LocalDateTime createdAt, @NonNull LocalDateTime updatedAt) {
         this.id = Objects.requireNonNull(id, "Room ID cannot be null");
         this.roomCode = Objects.requireNonNull(roomCode, "Room code cannot be null");
         this.physicalCapacity = physicalCapacity;
@@ -63,42 +79,42 @@ public class Room {
         }
     }
 
-    public void rename(@NonNull String newRoomCode) {
+    void rename(@NonNull String newRoomCode) {
         requireValidRoomCode(newRoomCode);
         this.roomCode = newRoomCode;
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void changeCapacity(int newCapacity) {
+    void changeCapacity(int newCapacity) {
         requirePositiveCapacity(newCapacity);
         this.physicalCapacity = newCapacity;
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void changeLocation(@NonNull String newLocation) {
+    void changeLocation(@NonNull String newLocation) {
         requireValidLocation(newLocation);
         this.location = newLocation;
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void activate() {
+    void activate() {
         this.active = true;
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void deactivate() {
+    void deactivate() {
         this.active = false;
         this.updatedAt = LocalDateTime.now();
     }
 
     // Getters
-    public UUID getId() { return id; }
-    public String getRoomCode() { return roomCode; }
-    public int getPhysicalCapacity() { return physicalCapacity; }
-    public String getLocation() { return location; }
-    public boolean isActive() { return active; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    UUID getId() { return id; }
+    String getRoomCode() { return roomCode; }
+    int getPhysicalCapacity() { return physicalCapacity; }
+    String getLocation() { return location; }
+    boolean isActive() { return active; }
+    LocalDateTime getCreatedAt() { return createdAt; }
+    LocalDateTime getUpdatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

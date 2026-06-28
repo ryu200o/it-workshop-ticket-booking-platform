@@ -1,10 +1,9 @@
-package com.example.itworkshopticketbookingplatform.room;
+package com.example.itworkshopticketbookingplatform.room.internal;
 
 import com.example.itworkshopticketbookingplatform.room.RoomService;
 import com.example.itworkshopticketbookingplatform.room.RoomActivationRequest;
 import com.example.itworkshopticketbookingplatform.room.RoomRequest;
 import com.example.itworkshopticketbookingplatform.room.RoomResponse;
-import com.example.itworkshopticketbookingplatform.room.internal.presentation.controller.RoomController;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

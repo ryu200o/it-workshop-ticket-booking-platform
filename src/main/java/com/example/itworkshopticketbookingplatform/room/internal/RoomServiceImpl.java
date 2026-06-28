@@ -1,12 +1,7 @@
-package com.example.itworkshopticketbookingplatform.room.internal.application.service;
+package com.example.itworkshopticketbookingplatform.room.internal;
 
 import com.example.itworkshopticketbookingplatform.room.RoomService;
 import com.example.itworkshopticketbookingplatform.room.RoomResponse;
-import com.example.itworkshopticketbookingplatform.room.internal.application.mapper.RoomMapper;
-import com.example.itworkshopticketbookingplatform.room.internal.domain.exception.DuplicateRoomCodeException;
-import com.example.itworkshopticketbookingplatform.room.internal.domain.model.Room;
-import com.example.itworkshopticketbookingplatform.room.internal.domain.exception.RoomNotFoundException;
-import com.example.itworkshopticketbookingplatform.room.internal.domain.repository.RoomRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.jspecify.annotations.NonNull;
@@ -16,14 +11,12 @@ import java.util.UUID;
 
 @Service
 @Transactional
-public class RoomServiceImpl implements RoomService {
+class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository;
-    private final RoomMapper roomMapper;
 
-    public RoomServiceImpl(@NonNull RoomRepository roomRepository, @NonNull RoomMapper roomMapper) {
+    RoomServiceImpl(@NonNull RoomRepository roomRepository) {
         this.roomRepository = roomRepository;
-        this.roomMapper = roomMapper;
     }
 
     @Override
@@ -34,7 +27,7 @@ public class RoomServiceImpl implements RoomService {
 
         Room newRoom = new Room(UUID.randomUUID(), roomCode, physicalCapacity, location);
         Room savedRoom = roomRepository.save(newRoom);
-        return roomMapper.toRoomResponse(savedRoom);
+        return toResponse(savedRoom);
     }
 
     @Override
@@ -53,7 +46,7 @@ public class RoomServiceImpl implements RoomService {
         room.changeLocation(location);
 
         Room updatedRoom = roomRepository.save(room);
-        return roomMapper.toRoomResponse(updatedRoom);
+        return toResponse(updatedRoom);
     }
 
     @Override
@@ -66,7 +59,7 @@ public class RoomServiceImpl implements RoomService {
             room.deactivate();
         }
         Room updatedRoom = roomRepository.save(room);
-        return roomMapper.toRoomResponse(updatedRoom);
+        return toResponse(updatedRoom);
     }
 
     @Override
@@ -74,13 +67,18 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse getRoomDetail(@NonNull UUID id) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException(id));
-        return roomMapper.toRoomResponse(room);
+        return toResponse(room);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RoomResponse> getRoomList() {
         List<Room> rooms = roomRepository.findAll();
-        return roomMapper.toRoomResponseList(rooms);
+        return rooms.stream().map(this::toResponse).toList();
+    }
+
+    private RoomResponse toResponse(Room room) {
+        return new RoomResponse(room.getId(), room.getRoomCode(), room.getPhysicalCapacity(),
+                                room.getLocation(), room.isActive(), room.getCreatedAt(), room.getUpdatedAt());
     }
 }
