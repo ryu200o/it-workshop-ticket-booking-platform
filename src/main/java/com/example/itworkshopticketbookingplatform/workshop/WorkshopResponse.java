@@ -1,6 +1,5 @@
 package com.example.itworkshopticketbookingplatform.workshop;
 
-import com.example.itworkshopticketbookingplatform.workshop.internal.domain.model.WorkshopState;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,7 +12,7 @@ public record WorkshopResponse(
     Instant startTime,
     Instant endTime,
     int capacity,
-    WorkshopState state,
+    String state,
     Instant createdAt,
     Instant updatedAt
 ) {}

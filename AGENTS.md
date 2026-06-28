@@ -41,6 +41,21 @@ Each module should follow a consistent directory structure, typically including:
 - **DTOs at module root**: All Data Transfer Objects (DTOs) for public API should be defined at the module root (e.g., `RoomRequest`, `RoomResponse`). Internal DTOs used only within the application layer may reside in `internal/application/dto/`.
 - **Repositories return Entities**: Repository interfaces (defined in the domain layer) and their implementations (in the infrastructure layer) should return domain entities.
 
+## Module Pattern Reference
+
+The **Room** and **Workshop** modules serve as reference implementations for the standard module structure:
+
+- **Public types at module root**: `RoomService`/`WorkshopService`, `RoomRequest`/`WorkshopRequest`, `RoomResponse`/`WorkshopResponse`, and `package-info.java`.
+- **Internal types under `internal/`**: Application services, domain models, events, infrastructure persistence, and presentation controllers.
+- **Events are internal**: Domain events reside in `internal/domain/event/`, not at the module root.
+- **DTOs dual placement**: Public DTOs at module root; internal DTOs (e.g., pagination) in `internal/application/dto/`.
+- **Infrastructure persistence pattern**: JPA entity + Spring Data interface in `jpa/` package, adapter implementing domain port in `repository/` package.
+- **Response DTOs use `String` for state fields**, not internal enums, to prevent domain leakage.
+- **Domain entities are framework-free**: No JPA or Spring annotations inside domain model classes.
+
+For detailed module documentation, see:
+- `docs/modules/workshop/README.md` - Workshop Module (Core Domain)
+
 ## Forbidden Patterns
 
 - **Do Not Return Entities from Services**: Application services must never directly return domain entities to the presentation layer or other modules. Always convert to a DTO.

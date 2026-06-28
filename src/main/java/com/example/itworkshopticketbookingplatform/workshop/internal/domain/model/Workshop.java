@@ -1,8 +1,6 @@
 package com.example.itworkshopticketbookingplatform.workshop.internal.domain.model;
 
 import com.example.itworkshopticketbookingplatform.workshop.internal.domain.exception.InvalidWorkshopStateException;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -10,10 +8,7 @@ import java.util.UUID;
 public class Workshop {
 
     private final WorkshopId id;
-    @NotBlank
-    @Size(max = 200)
     private String title;
-    @Size(max = 2000)
     private String description;
     private UUID roomId;
     private String roomDisplayNameSnapshot;
@@ -132,7 +127,9 @@ public class Workshop {
      * Transitions: PUBLISHED -> PUBLISHED (stays PUBLISHED)
      */
     public void reschedule(Instant startTime, Instant endTime, UUID newRoomId, String newRoomDisplayNameSnapshot, boolean roomChanged) {
-        validateStateTransition(WorkshopState.PUBLISHED);
+        if (state != WorkshopState.PUBLISHED) {
+            throw new InvalidWorkshopStateException("Cannot reschedule workshop in state: " + state);
+        }
         validateRescheduleInvariants(startTime, endTime);
         
         this.startTime = startTime;
@@ -269,19 +266,19 @@ public class Workshop {
 
     /**
      * Creates Workshop instance from persistence data.
-     * Used by infrastructure layer for rehydration.
+     * Package-private - only infrastructure layer should use this.
      */
     public static Workshop fromPersistence(WorkshopId id,
-                                    String title,
-                                    String description,
-                                    UUID roomId,
-                                    String roomDisplayNameSnapshot,
-                                    Instant startTime,
-                                    Instant endTime,
-                                    int capacity,
-                                    WorkshopState state,
-                                    Instant createdAt,
-                                    Instant updatedAt) {
+                                          String title,
+                                          String description,
+                                          UUID roomId,
+                                          String roomDisplayNameSnapshot,
+                                          Instant startTime,
+                                          Instant endTime,
+                                          int capacity,
+                                          WorkshopState state,
+                                          Instant createdAt,
+                                          Instant updatedAt) {
         return new Workshop(id, title, description, roomId, roomDisplayNameSnapshot,
                 startTime, endTime, capacity, state, createdAt, updatedAt);
     }
