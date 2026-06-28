@@ -34,6 +34,7 @@ public class WorkshopJpaEntity {
     @Column(name = "capacity", nullable = false)
     private int capacity;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 20)
     private WorkshopState state;
 
