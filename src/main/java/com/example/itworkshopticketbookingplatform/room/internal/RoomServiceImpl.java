@@ -1,7 +1,9 @@
 package com.example.itworkshopticketbookingplatform.room.internal;
 
 import com.example.itworkshopticketbookingplatform.room.RoomService;
-import com.example.itworkshopticketbookingplatform.room.RoomResponse;
+import com.example.itworkshopticketbookingplatform.room.RoomNotFoundException;
+import com.example.itworkshopticketbookingplatform.room.internal.exception.DuplicateRoomCodeException;
+import com.example.itworkshopticketbookingplatform.room.dto.RoomResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.jspecify.annotations.NonNull;

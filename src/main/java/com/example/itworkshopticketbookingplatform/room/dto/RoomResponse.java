@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.room;
+package com.example.itworkshopticketbookingplatform.room.dto;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

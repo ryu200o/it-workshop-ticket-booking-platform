@@ -1,7 +1,9 @@
 package com.example.itworkshopticketbookingplatform.workshop.internal;
 
-import com.example.itworkshopticketbookingplatform.workshop.WorkshopRequest;
-import com.example.itworkshopticketbookingplatform.workshop.WorkshopResponse;
+import com.example.itworkshopticketbookingplatform.workshop.internal.exception.InvalidWorkshopStateException;
+import com.example.itworkshopticketbookingplatform.workshop.WorkshopNotFoundException;
+import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopRequest;
+import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopResponse;
 import com.example.itworkshopticketbookingplatform.workshop.WorkshopEvents;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -174,7 +176,7 @@ class WorkshopServiceIntegrationTests {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
             var request = new WorkshopRequest("Title", "Description");
 
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(WorkshopNotFoundException.class,
                     () -> workshopService.updateContent(WORKSHOP_ID, request));
         }
 
@@ -216,7 +218,7 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(WorkshopNotFoundException.class,
                     () -> workshopService.schedule(WORKSHOP_ID, START_TIME, END_TIME, CAPACITY, ROOM_ID));
         }
     }
@@ -267,7 +269,7 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(WorkshopNotFoundException.class,
                     () -> workshopService.publish(WORKSHOP_ID));
         }
     }
@@ -332,7 +334,7 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(WorkshopNotFoundException.class,
                     () -> workshopService.reschedule(WORKSHOP_ID, START_TIME, END_TIME, ROOM_ID));
         }
     }
@@ -362,7 +364,7 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(WorkshopNotFoundException.class,
                     () -> workshopService.start(WORKSHOP_ID));
         }
 
@@ -400,7 +402,7 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(WorkshopNotFoundException.class,
                     () -> workshopService.complete(WORKSHOP_ID));
         }
 
@@ -450,7 +452,7 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(WorkshopNotFoundException.class,
                     () -> workshopService.cancel(WORKSHOP_ID));
         }
 
@@ -494,7 +496,7 @@ class WorkshopServiceIntegrationTests {
         @DisplayName("should throw when workshop not found")
         void shouldThrowWhenNotFound() {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.empty());
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(WorkshopNotFoundException.class,
                     () -> workshopService.findById(WORKSHOP_ID));
         }
     }

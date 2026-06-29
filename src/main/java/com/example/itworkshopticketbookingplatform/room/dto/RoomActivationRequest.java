@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.room;
+package com.example.itworkshopticketbookingplatform.room.dto;
 
 import jakarta.validation.constraints.NotNull;
 

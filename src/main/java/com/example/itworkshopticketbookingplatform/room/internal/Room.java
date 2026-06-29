@@ -6,6 +6,10 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.example.itworkshopticketbookingplatform.room.internal.exception.InvalidRoomCodeException;
+import com.example.itworkshopticketbookingplatform.room.internal.exception.InvalidPhysicalCapacityException;
+import com.example.itworkshopticketbookingplatform.room.internal.exception.InvalidLocationException;
+
 @Entity
 @Table(name = "rooms")
 class Room {

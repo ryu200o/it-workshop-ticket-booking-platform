@@ -1,9 +1,9 @@
-package com.example.itworkshopticketbookingplatform.room.internal;
+package com.example.itworkshopticketbookingplatform.room.internal.web;
 
 import com.example.itworkshopticketbookingplatform.room.RoomService;
-import com.example.itworkshopticketbookingplatform.room.RoomActivationRequest;
-import com.example.itworkshopticketbookingplatform.room.RoomRequest;
-import com.example.itworkshopticketbookingplatform.room.RoomResponse;
+import com.example.itworkshopticketbookingplatform.room.dto.RoomActivationRequest;
+import com.example.itworkshopticketbookingplatform.room.dto.RoomRequest;
+import com.example.itworkshopticketbookingplatform.room.dto.RoomResponse;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

@@ -1,7 +1,7 @@
-package com.example.itworkshopticketbookingplatform.workshop.internal;
+package com.example.itworkshopticketbookingplatform.workshop.internal.web;
 
-import com.example.itworkshopticketbookingplatform.workshop.WorkshopRequest;
-import com.example.itworkshopticketbookingplatform.workshop.WorkshopResponse;
+import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopRequest;
+import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopResponse;
 import com.example.itworkshopticketbookingplatform.workshop.WorkshopService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.workshop;
+package com.example.itworkshopticketbookingplatform.workshop.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

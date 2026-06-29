@@ -1,5 +1,6 @@
-package com.example.itworkshopticketbookingplatform.workshop.internal;
+package com.example.itworkshopticketbookingplatform.workshop.internal.web;
 
+import com.example.itworkshopticketbookingplatform.workshop.internal.exception.InvalidWorkshopStateException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

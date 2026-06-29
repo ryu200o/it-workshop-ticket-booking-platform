@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.example.itworkshopticketbookingplatform.workshop.internal.exception.InvalidWorkshopStateException;
+
 @Entity
 @Table(name = "workshop")
 class Workshop {
