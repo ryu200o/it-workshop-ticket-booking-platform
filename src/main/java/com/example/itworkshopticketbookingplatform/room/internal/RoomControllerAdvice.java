@@ -1,9 +1,7 @@
-package com.example.itworkshopticketbookingplatform.room.internal.web;
+package com.example.itworkshopticketbookingplatform.room.internal;
 
-import org.springframework.http.HttpStatus;
 import com.example.itworkshopticketbookingplatform.room.RoomNotFoundException;
-import com.example.itworkshopticketbookingplatform.room.internal.exception.DuplicateRoomCodeException;
-import com.example.itworkshopticketbookingplatform.room.internal.exception.RoomDomainException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -16,13 +14,13 @@ class RoomControllerAdvice {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(DuplicateRoomCodeException.class)
-    ResponseEntity<String> handleDuplicateRoomCodeException(DuplicateRoomCodeException ex) {
+    @ExceptionHandler(RoomExceptions.DuplicateRoomCodeException.class)
+    ResponseEntity<String> handleDuplicateRoomCodeException(RoomExceptions.DuplicateRoomCodeException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(RoomDomainException.class)
-    ResponseEntity<String> handleRoomDomainException(RoomDomainException ex) {
+    @ExceptionHandler(RoomExceptions.RoomDomainException.class)
+    ResponseEntity<String> handleRoomDomainException(RoomExceptions.RoomDomainException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 }

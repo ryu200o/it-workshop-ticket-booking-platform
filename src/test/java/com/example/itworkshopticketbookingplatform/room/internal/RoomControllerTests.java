@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.room.internal.web;
+package com.example.itworkshopticketbookingplatform.room.internal;
 
 import com.example.itworkshopticketbookingplatform.room.RoomService;
 import com.example.itworkshopticketbookingplatform.room.dto.RoomActivationRequest;

@@ -7,32 +7,29 @@ This document outlines the architectural principles and guidelines for AI coding
 ### Spring Boot 4 Modulith
 The project is structured using Spring Modulith, promoting a modular and cohesive design. Each module should represent a distinct bounded context or functional area.
 
-### Facade & Black-Box Module Design
+### Facade & Black-Box Module Design (Plan B3 — Flat internal/)
 
-Every module follows a strict two-zone package layout with mandatory sub-package encapsulation:
+Every module follows a strict two-zone package layout:
 
 - **Public Facade (Module Root + `dto/`):** Contains only types that other modules are allowed to import: public interfaces, DTOs (Java records), event namespaces, and activation requests. DTOs reside in the `dto/` sub-package and are exposed to other modules via `@NamedInterface` on `dto/package-info.java`.
-- **Black-Box (`internal/`):** Contains everything else: controllers, service implementations, JPA entities, Spring Data repositories, and exception classes. Module-level isolation is enforced by Spring Modulith `verify()`, not Java access modifiers. Classes within `internal/` sub-packages that need cross-sub-package access (e.g., `internal/exception/` used by `internal/web/`) MUST be `public` — Java's package-private scope does not work across sub-packages.
+- **Black-Box (`internal/`):** Contains everything else: controllers, controller advice, service implementations, JPA entities, Spring Data repositories, and all internal exceptions — **ALL in a single flat package** with NO sub-packages. Module-level isolation is enforced by Spring Modulith `verify()`, not Java access modifiers. Every class in `internal/` is package-private.
 
-#### Sub-package Encapsulation Rules
+#### Flat internal/ Encapsulation Rules
 
-| Sub-package | Purpose | Access |
-|-------------|---------|--------|
-| `{module}/` (root) | Public interfaces (`*Service.java`), event namespaces (`*Events.java`), `package-info.java` | `public` |
+| Location | Purpose | Access |
+|----------|---------|--------|
+| `{module}/` (root) | Public interfaces (`*Service.java`), event namespaces (`*Events.java`), `package-info.java`, public `*NotFoundException` classes | `public` |
 | `{module}/dto/` | Public request/response DTOs (Java records), activation requests | `public` |
-| `{module}/internal/` | Entities, Repository, ServiceImpl — stays at root of `internal/` | `package-private` |
-| `{module}/internal/web/` | All Controllers and ControllerAdvice classes | `package-private` |
-| `{module}/internal/exception/` | All internal technical exceptions (not public domain events) | `package-private` |
+| `{module}/internal/` | **ALL** internal classes: Entity, Repository, ServiceImpl, Controller, ControllerAdvice, internal exceptions | `package-private` |
 
 **Hard Rules:**
 
 1. **`dto/` is PUBLIC facade.** The `dto/` package at module root contains all public DTOs and **MUST** be exposed via `@NamedInterface` on `dto/package-info.java` so other modules can import them.
-2. **`internal/web/` contains ALL Controllers + ControllerAdvice.** No controller or advice class may exist outside this sub-package. All are package-private.
-3. **`internal/exception/` contains ALL internal technical exceptions.** Domain exceptions that are not part of the public event contract go here. All are package-private.
-4. **Entity, Repository, ServiceImpl STAY at `internal/` root.** Do NOT create a separate `model/`, `entity/`, or `domain/` sub-package under `internal/`. The entity (`Room.java`, `Workshop.java`), repository, and service implementation remain directly under `internal/`.
-5. **Enforcement: ANY class in `internal/` (including sub-packages) MUST be package-private.** The review-agent will VETO any class under `internal/` that declares `public` access — no exceptions.
-6. **Public exceptions live at module root.** `*NotFoundException` classes that other modules need to import MUST be `public` at the module root, NOT in `internal/exception/`.
-7. **Cross-sub-package access within `internal/` requires `public` modifier.** Classes in `internal/exception/` used by `internal/web/` (ControllerAdvice), or internal DTOs in `internal/` root used by `internal/web/` controllers, MUST be `public` because Java's package-private scope does not cross sub-package boundaries. Spring Modulith's `verify()` provides the real module-level isolation.
+2. **`internal/` is FLAT — NO sub-packages.** Entity, Repository, ServiceImpl, Controller, ControllerAdvice, and ALL internal exceptions go directly in `internal/` root. Do NOT create `internal/web/`, `internal/exception/`, `internal/model/`, or any other sub-package.
+3. **ALL classes in `internal/` are package-private.** Every single class — Entity, Repository, ServiceImpl, Controller, ControllerAdvice, and ALL exceptions — must be package-private (no `public` keyword). The review-agent will VETO any class under `internal/` that declares `public` access.
+4. **Exception Consolidated File.** All internal exceptions for a module **MUST** be consolidated into a **single file** (e.g., `RoomExceptions.java`, `WorkshopExceptions.java`) as static inner classes. The outer class is `final` with a private constructor. All inner exception classes are package-private.
+5. **Public exceptions live at module root.** `*NotFoundException` classes that other modules need to import MUST be `public` at the module root, NOT in `internal/`. These are the only exceptions outside `internal/`.
+6. **Controller and ControllerAdvice are together in `internal/` root.** No `internal/web/` sub-package exists. Controllers and their advice classes sit alongside entities and services.
 
 ```
 com.example.itworkshopticketbookingplatform/    # Main package (@SpringBootApplication)
@@ -48,21 +45,13 @@ com.example.itworkshopticketbookingplatform/    # Main package (@SpringBootAppli
 │   │   ├── RoomResponse.java                   # Public Response DTO (Java Record)
 │   │   └── RoomActivationRequest.java          # Public Request DTO (Java Record)
 │   │
-│   └── internal/                               # BLACK-BOX ZONE (ALL package-private)
+│   └── internal/                               # BLACK-BOX ZONE (ALL package-private, FLAT)
 │       ├── Room.java                           # @Entity (JPA) with business logic
 │       ├── RoomRepository.java                 # Spring Data JPA interface (extends JpaRepository)
 │       ├── RoomServiceImpl.java                # Business logic implementation
-│       │
-│       ├── web/                                # Web layer — Controllers & Advice
-│       │   ├── RoomController.java
-│       │   └── RoomControllerAdvice.java
-│       │
-│       └── exception/                          # Internal technical exceptions
-│           ├── DuplicateRoomCodeException.java
-│           ├── InvalidPhysicalCapacityException.java
-│           ├── InvalidRoomCodeException.java
-│           ├── InvalidLocationException.java
-│           └── RoomDomainException.java
+│       ├── RoomController.java                 # Web controller (package-private)
+│       ├── RoomControllerAdvice.java           # Controller advice (package-private)
+│       └── RoomExceptions.java                 # Consolidated exceptions (static inner classes)
 │
 └── workshop/                                   # MODULE WORKSHOP (PUBLIC FACADE)
     ├── WorkshopService.java                    # Public Interface
@@ -74,18 +63,14 @@ com.example.itworkshopticketbookingplatform/    # Main package (@SpringBootAppli
     │   ├── WorkshopRequest.java                # Public Request DTO (Java Record)
     │   └── WorkshopResponse.java               # Public Response DTO (Java Record)
     │
-    └── internal/                               # BLACK-BOX ZONE (ALL package-private)
+    └── internal/                               # BLACK-BOX ZONE (ALL package-private, FLAT)
         ├── Workshop.java                       # @Entity (JPA) with business logic
         ├── WorkshopState.java                  # Enum
         ├── WorkshopRepository.java             # Spring Data JPA interface (extends JpaRepository)
         ├── WorkshopServiceImpl.java            # Business logic implementation
-        │
-        ├── web/                                # Web layer — Controllers & Advice
-        │   ├── WorkshopController.java
-        │   └── WorkshopControllerAdvice.java
-        │
-        └── exception/                          # Internal technical exceptions
-            └── InvalidWorkshopStateException.java
+        ├── WorkshopController.java             # Web controller (package-private)
+        ├── WorkshopControllerAdvice.java       # Controller advice (package-private)
+        └── WorkshopExceptions.java             # Consolidated exceptions (static inner classes)
 ```
 
 ## One Entity = One Class
@@ -317,11 +302,8 @@ class WorkshopModuleTest {
 - **All classes in `internal/` MUST use package-private access** (no `public` keyword on the class declaration).
 - **Constructors for persistence reconstruction should be package-private** to prevent instantiation outside the module.
 - Only the public facade types at module root should be `public`.
-- **`internal/web/`** — Controllers and ControllerAdvice are package-private; no exceptions.
-- **`internal/exception/`** — Internal technical exceptions are package-private; no exceptions.
-- **`internal/` root** — Entity, Repository, ServiceImpl stay here; package-private.
-- **Enforcement:** The review-agent will VETO any class under `internal/` (including sub-packages) that declares `public` access.
-- **⚠️ Cross-sub-package exception:** Classes in `internal/exception/` that are caught by ControllerAdvice in `internal/web/`, and internal DTOs in `internal/` root used by controllers in `internal/web/`, MUST be `public` because Java's package-private scope does not work across sub-packages. Spring Modulith `verify()` enforces module-level boundaries instead.
+- **`internal/` root** — ALL classes live here: Entity, Repository, ServiceImpl, Controller, ControllerAdvice, consolidated exceptions. All package-private.
+- **Enforcement:** The review-agent will VETO any class under `internal/` that declares `public` access.
 
 ## Allowed Patterns
 

@@ -22,21 +22,13 @@ room/
 │   ├── RoomActivationRequest.java  # Public activation toggle DTO
 │   └── package-info.java           # @NamedInterface
 │
-└── internal/                       # Black-box zone (all package-private)
+└── internal/                       # Black-box zone (ALL package-private, FLAT)
     ├── Room.java                   # @Entity (JPA) with business logic
     ├── RoomRepository.java         # Spring Data JPA interface (extends JpaRepository)
     ├── RoomServiceImpl.java        # Business logic implementation
-    │
-    ├── web/                        # Web layer
-    │   ├── RoomController.java     # REST endpoints
-    │   └── RoomControllerAdvice.java # Error handling
-    │
-    └── exception/                  # Internal technical exceptions
-        ├── RoomDomainException.java
-        ├── InvalidRoomCodeException.java
-        ├── InvalidPhysicalCapacityException.java
-        ├── InvalidLocationException.java
-        └── DuplicateRoomCodeException.java
+    ├── RoomController.java         # REST endpoints
+    ├── RoomControllerAdvice.java   # Error handling
+    └── RoomExceptions.java         # Consolidated exceptions (5 static inner classes)
 ```
 
 ### Public API (Module Root + dto/)
@@ -153,7 +145,21 @@ Room temporal fields (`createdAt`, `updatedAt`) use `java.time.LocalDateTime`. N
 
 ### Public Exception at Module Root
 
-`RoomNotFoundException` is placed at the module root (not under `internal/exception/`) so that other modules can import it. All five internal exceptions remain under `internal/exception/` and are package-private.
+`RoomNotFoundException` is placed at the module root (not under `internal/`) so that other modules can import it. All internal exceptions are consolidated into `RoomExceptions.java` under `internal/` as package-private static inner classes.
+
+---
+
+## Consolidated Internal Exceptions
+
+All internal exceptions are consolidated into a single file `RoomExceptions.java` as a `final` class with a private constructor, containing package-private static inner classes:
+
+| Inner Class | Purpose |
+|-------------|---------|
+| `RoomDomainException` | Generic room domain error |
+| `InvalidRoomCodeException` | Room code validation failure |
+| `InvalidPhysicalCapacityException` | Physical capacity out of range |
+| `InvalidLocationException` | Location validation failure |
+| `DuplicateRoomCodeException` | Room code already exists |
 
 ---
 

@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.workshop.internal.web;
+package com.example.itworkshopticketbookingplatform.workshop.internal;
 
 import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopRequest;
 import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopResponse;

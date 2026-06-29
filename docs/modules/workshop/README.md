@@ -13,11 +13,16 @@ Workshops are exclusively **offline (in-person)** sessions. Each Workshop repres
 ```
 workshop/
 ├── WorkshopService.java              # Public service interface
-├── WorkshopRequest.java              # Public DTO (input)
-├── WorkshopResponse.java             # Public DTO (output)
+├── WorkshopNotFoundException.java    # Public exception (importable by other modules)
 ├── WorkshopEvents.java               # Public event namespace (sealed interface)
 ├── package-info.java                 # @ApplicationModule(allowedDependencies = {"room"})
-└── internal/                         # Black-box zone (all package-private)
+│
+├── dto/                              # PUBLIC DTOs (exposed via @NamedInterface)
+│   ├── WorkshopRequest.java          # Public input DTO with Jakarta Validation
+│   ├── WorkshopResponse.java         # Public output DTO
+│   └── package-info.java             # @NamedInterface
+│
+└── internal/                         # Black-box zone (ALL package-private, FLAT)
     ├── Workshop.java                 # @Entity (JPA) with business logic
     ├── WorkshopState.java            # State enum
     ├── WorkshopRepository.java       # Spring Data JPA interface (extends JpaRepository)
@@ -25,12 +30,12 @@ workshop/
     ├── WorkshopController.java       # REST endpoints
     ├── WorkshopControllerAdvice.java # Error handling
     ├── WorkshopPageRequest.java      # Internal DTO for pagination
-    └── InvalidWorkshopStateException.java
+    └── WorkshopExceptions.java       # Consolidated exceptions (static inner classes)
 ```
 
 ### Public API (Module Root)
 
-Four types are exposed to other modules:
+Five types are exposed to other modules:
 
 | Type | Description |
 |------|-------------|
@@ -38,6 +43,7 @@ Four types are exposed to other modules:
 | `WorkshopRequest` | Public input DTO (title, description) with Jakarta Validation |
 | `WorkshopResponse` | Public output DTO containing all workshop fields |
 | `WorkshopEvents` | Public event namespace with sealed interface and 6 event records |
+| `WorkshopNotFoundException` | Public exception thrown when a workshop is not found by ID |
 
 All other types reside under `internal/` and are not accessible from outside the module.
 

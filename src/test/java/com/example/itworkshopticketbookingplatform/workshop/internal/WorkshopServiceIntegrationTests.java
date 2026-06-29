@@ -1,6 +1,6 @@
 package com.example.itworkshopticketbookingplatform.workshop.internal;
 
-import com.example.itworkshopticketbookingplatform.workshop.internal.exception.InvalidWorkshopStateException;
+import com.example.itworkshopticketbookingplatform.workshop.internal.WorkshopExceptions.InvalidWorkshopStateException;
 import com.example.itworkshopticketbookingplatform.workshop.WorkshopNotFoundException;
 import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopRequest;
 import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopResponse;
