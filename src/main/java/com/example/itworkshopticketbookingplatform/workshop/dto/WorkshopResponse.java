@@ -1,4 +1,4 @@
-package com.example.itworkshopticketbookingplatform.workshop;
+package com.example.itworkshopticketbookingplatform.workshop.dto;
 
 import java.time.Instant;
 import java.util.UUID;

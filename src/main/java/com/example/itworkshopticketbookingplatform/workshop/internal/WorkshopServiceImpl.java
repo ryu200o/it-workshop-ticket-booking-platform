@@ -1,8 +1,9 @@
 package com.example.itworkshopticketbookingplatform.workshop.internal;
 
 import com.example.itworkshopticketbookingplatform.workshop.WorkshopEvents;
-import com.example.itworkshopticketbookingplatform.workshop.WorkshopRequest;
-import com.example.itworkshopticketbookingplatform.workshop.WorkshopResponse;
+import com.example.itworkshopticketbookingplatform.workshop.WorkshopNotFoundException;
+import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopRequest;
+import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopResponse;
 import com.example.itworkshopticketbookingplatform.workshop.WorkshopService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -37,7 +38,7 @@ class WorkshopServiceImpl implements WorkshopService {
     public WorkshopResponse updateContent(String workshopId, WorkshopRequest request) {
         UUID id = UUID.fromString(workshopId);
         Workshop workshop = workshopRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workshop not found: " + workshopId));
+                .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
 
         workshop.updateContent(request.title(), request.description());
         Workshop saved = workshopRepository.save(workshop);
@@ -48,7 +49,7 @@ class WorkshopServiceImpl implements WorkshopService {
     public WorkshopResponse schedule(String workshopId, Instant startTime, Instant endTime, int capacity, String roomId) {
         UUID id = UUID.fromString(workshopId);
         Workshop workshop = workshopRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workshop not found: " + workshopId));
+                .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
 
         UUID roomUuid = UUID.fromString(roomId);
         String roomDisplayNameSnapshot = "Room " + roomId; // TODO: Fetch from Room module
@@ -62,7 +63,7 @@ class WorkshopServiceImpl implements WorkshopService {
     public WorkshopResponse publish(String workshopId) {
         UUID id = UUID.fromString(workshopId);
         Workshop workshop = workshopRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workshop not found: " + workshopId));
+                .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
 
         // Validate room conflict before publishing
         if (workshop.getRoomId() != null && workshop.getStartTime() != null && workshop.getEndTime() != null) {
@@ -102,7 +103,7 @@ class WorkshopServiceImpl implements WorkshopService {
     public WorkshopResponse reschedule(String workshopId, Instant startTime, Instant endTime, String roomId) {
         UUID id = UUID.fromString(workshopId);
         Workshop workshop = workshopRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workshop not found: " + workshopId));
+                .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
 
         UUID newRoomId = UUID.fromString(roomId);
         boolean roomChanged = !newRoomId.equals(workshop.getRoomId());
@@ -151,7 +152,7 @@ class WorkshopServiceImpl implements WorkshopService {
     public WorkshopResponse start(String workshopId) {
         UUID id = UUID.fromString(workshopId);
         Workshop workshop = workshopRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workshop not found: " + workshopId));
+                .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
 
         workshop.start();
         Workshop saved = workshopRepository.save(workshop);
@@ -168,7 +169,7 @@ class WorkshopServiceImpl implements WorkshopService {
     public WorkshopResponse complete(String workshopId) {
         UUID id = UUID.fromString(workshopId);
         Workshop workshop = workshopRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workshop not found: " + workshopId));
+                .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
 
         workshop.complete();
         Workshop saved = workshopRepository.save(workshop);
@@ -185,7 +186,7 @@ class WorkshopServiceImpl implements WorkshopService {
     public WorkshopResponse cancel(String workshopId) {
         UUID id = UUID.fromString(workshopId);
         Workshop workshop = workshopRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workshop not found: " + workshopId));
+                .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
 
         workshop.cancel();
         Workshop saved = workshopRepository.save(workshop);
@@ -204,7 +205,7 @@ class WorkshopServiceImpl implements WorkshopService {
     public WorkshopResponse findById(String workshopId) {
         UUID id = UUID.fromString(workshopId);
         Workshop workshop = workshopRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workshop not found: " + workshopId));
+                .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
         return toResponse(workshop);
     }
 

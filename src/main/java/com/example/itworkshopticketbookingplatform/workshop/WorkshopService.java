@@ -4,6 +4,9 @@ import java.time.Instant;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopRequest;
+import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopResponse;
+
 public interface WorkshopService {
     WorkshopResponse createDraft(WorkshopRequest request);
     WorkshopResponse updateContent(String workshopId, WorkshopRequest request);

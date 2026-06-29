@@ -14,8 +14,8 @@ import java.util.Map;
 @RestControllerAdvice
 class WorkshopControllerAdvice {
 
-    @ExceptionHandler(InvalidWorkshopStateException.class)
-    ResponseEntity<ErrorResponse> handleInvalidState(InvalidWorkshopStateException ex) {
+    @ExceptionHandler(WorkshopExceptions.InvalidWorkshopStateException.class)
+    ResponseEntity<ErrorResponse> handleInvalidState(WorkshopExceptions.InvalidWorkshopStateException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("INVALID_STATE_TRANSITION", ex.getMessage(), Instant.now()));
     }

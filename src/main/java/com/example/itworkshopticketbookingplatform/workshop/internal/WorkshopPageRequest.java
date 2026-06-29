@@ -6,7 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-record WorkshopPageRequest(
+public record WorkshopPageRequest(
     @Min(0)
     int page,
 
@@ -17,7 +17,7 @@ record WorkshopPageRequest(
 
     String sortDirection
 ) {
-    WorkshopPageRequest {
+    public WorkshopPageRequest {
         if (page < 0) {
             page = 0;
         }
@@ -35,7 +35,7 @@ record WorkshopPageRequest(
         }
     }
 
-    Pageable toPageable() {
+    public Pageable toPageable() {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         return PageRequest.of(page, size, direction, sortBy);
     }

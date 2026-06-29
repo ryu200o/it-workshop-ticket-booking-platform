@@ -1,5 +1,6 @@
 package com.example.itworkshopticketbookingplatform.room.internal;
 
+import com.example.itworkshopticketbookingplatform.room.RoomNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,13 +14,13 @@ class RoomControllerAdvice {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(DuplicateRoomCodeException.class)
-    ResponseEntity<String> handleDuplicateRoomCodeException(DuplicateRoomCodeException ex) {
+    @ExceptionHandler(RoomExceptions.DuplicateRoomCodeException.class)
+    ResponseEntity<String> handleDuplicateRoomCodeException(RoomExceptions.DuplicateRoomCodeException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(RoomDomainException.class)
-    ResponseEntity<String> handleRoomDomainException(RoomDomainException ex) {
+    @ExceptionHandler(RoomExceptions.RoomDomainException.class)
+    ResponseEntity<String> handleRoomDomainException(RoomExceptions.RoomDomainException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 }

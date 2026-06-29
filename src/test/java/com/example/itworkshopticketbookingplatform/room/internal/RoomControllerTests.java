@@ -1,9 +1,9 @@
 package com.example.itworkshopticketbookingplatform.room.internal;
 
 import com.example.itworkshopticketbookingplatform.room.RoomService;
-import com.example.itworkshopticketbookingplatform.room.RoomActivationRequest;
-import com.example.itworkshopticketbookingplatform.room.RoomRequest;
-import com.example.itworkshopticketbookingplatform.room.RoomResponse;
+import com.example.itworkshopticketbookingplatform.room.dto.RoomActivationRequest;
+import com.example.itworkshopticketbookingplatform.room.dto.RoomRequest;
+import com.example.itworkshopticketbookingplatform.room.dto.RoomResponse;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith({RestDocumentationExtension.class, SpringExtension.class})
 @WebMvcTest(RoomController.class)
 @AutoConfigureRestDocs(outputDir = "target/snippets")
-public class RoomControllerTests {
+class RoomControllerTests {
 
     @Autowired
     private MockMvc mockMvc;
