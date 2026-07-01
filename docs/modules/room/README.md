@@ -12,7 +12,7 @@ Rooms are exclusively **offline (in-person)** venues. Each Room represents a sin
 
 ```
 room/
-├── RoomService.java                # Public service interface
+├── RoomExposeAPI.java                   # Public service interface
 ├── RoomNotFoundException.java      # Public exception (importable by other modules)
 ├── package-info.java               # @ApplicationModule(allowedDependencies = {})
 │
@@ -23,10 +23,12 @@ room/
 │   └── package-info.java           # @NamedInterface
 │
 └── internal/                       # Black-box zone (ALL package-private, FLAT)
+    ├── RoomExposeAPIImpl.java      # Implements RoomExposeAPI (delegates to RoomService)
+    ├── RoomService.java            # Internal service interface (full CRUD, package-private)
     ├── Room.java                   # @Entity (JPA) with business logic
     ├── RoomRepository.java         # Spring Data JPA interface (extends JpaRepository)
     ├── RoomServiceImpl.java        # Business logic implementation
-    ├── RoomController.java         # REST endpoints
+    ├── RoomController.java         # REST endpoints (injects RoomService)
     ├── RoomControllerAdvice.java   # Error handling
     └── RoomExceptions.java         # Consolidated exceptions (5 static inner classes)
 ```
@@ -37,7 +39,7 @@ Five types are exposed to other modules:
 
 | Type | Description |
 |------|-------------|
-| `RoomService` | Public service interface -- the single entry point for all room operations |
+| `RoomExposeAPI` | Public service interface -- the single entry point for all room operations |
 | `RoomRequest` | Public input DTO (roomCode, physicalCapacity, location) with Jakarta Validation |
 | `RoomResponse` | Public output DTO containing all room fields |
 | `RoomActivationRequest` | Public DTO for toggling the active status of a room |
@@ -194,4 +196,4 @@ No cross-module foreign keys. The Workshop module references rooms via a logical
 ## Known TODOs
 
 - Room module uses `LocalDateTime` (non-compliant with Architecture Baseline which specifies `Instant` / `TIMESTAMP WITH TIME ZONE`). This is tracked as a future alignment task.
-- The Workshop module's `schedule()` uses a placeholder room display name (`"Room " + roomId`). Real implementation should call `RoomService` from the Room module to obtain the actual room code and location.
+- The Workshop module's `schedule()` uses a placeholder room display name (`"Room " + roomId`). Real implementation should call `RoomExposeAPI` from the Room module to obtain the actual room code and location.

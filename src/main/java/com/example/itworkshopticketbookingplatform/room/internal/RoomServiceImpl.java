@@ -1,6 +1,5 @@
 package com.example.itworkshopticketbookingplatform.room.internal;
 
-import com.example.itworkshopticketbookingplatform.room.RoomService;
 import com.example.itworkshopticketbookingplatform.room.RoomNotFoundException;
 import com.example.itworkshopticketbookingplatform.room.internal.RoomExceptions.DuplicateRoomCodeException;
 import com.example.itworkshopticketbookingplatform.room.dto.RoomResponse;
