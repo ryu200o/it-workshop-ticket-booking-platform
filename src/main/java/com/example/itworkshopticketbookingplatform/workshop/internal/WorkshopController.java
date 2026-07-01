@@ -2,7 +2,6 @@ package com.example.itworkshopticketbookingplatform.workshop.internal;
 
 import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopRequest;
 import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopResponse;
-import com.example.itworkshopticketbookingplatform.workshop.WorkshopService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

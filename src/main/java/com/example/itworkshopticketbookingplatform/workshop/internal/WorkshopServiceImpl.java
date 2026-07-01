@@ -4,7 +4,6 @@ import com.example.itworkshopticketbookingplatform.workshop.WorkshopEvents;
 import com.example.itworkshopticketbookingplatform.workshop.WorkshopNotFoundException;
 import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopRequest;
 import com.example.itworkshopticketbookingplatform.workshop.dto.WorkshopResponse;
-import com.example.itworkshopticketbookingplatform.workshop.WorkshopService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

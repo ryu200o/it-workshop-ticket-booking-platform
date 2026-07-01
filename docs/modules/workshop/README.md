@@ -12,7 +12,7 @@ Workshops are exclusively **offline (in-person)** sessions. Each Workshop repres
 
 ```
 workshop/
-├── WorkshopService.java              # Public service interface
+├── WorkshopExposeAPI.java                 # Public service interface
 ├── WorkshopNotFoundException.java    # Public exception (importable by other modules)
 ├── WorkshopEvents.java               # Public event namespace (sealed interface)
 ├── package-info.java                 # @ApplicationModule(allowedDependencies = {"room"})
@@ -23,11 +23,13 @@ workshop/
 │   └── package-info.java             # @NamedInterface
 │
 └── internal/                         # Black-box zone (ALL package-private, FLAT)
+    ├── WorkshopExposeAPIImpl.java    # Implements WorkshopExposeAPI (delegates to WorkshopService)
+    ├── WorkshopService.java          # Internal service interface (full CRUD, package-private)
     ├── Workshop.java                 # @Entity (JPA) with business logic
     ├── WorkshopState.java            # State enum
     ├── WorkshopRepository.java       # Spring Data JPA interface (extends JpaRepository)
     ├── WorkshopServiceImpl.java      # Business logic + event publishing
-    ├── WorkshopController.java       # REST endpoints
+    ├── WorkshopController.java       # REST endpoints (injects WorkshopService)
     ├── WorkshopControllerAdvice.java # Error handling
     ├── WorkshopPageRequest.java      # Internal DTO for pagination
     └── WorkshopExceptions.java       # Consolidated exceptions (static inner classes)
@@ -39,7 +41,7 @@ Five types are exposed to other modules:
 
 | Type | Description |
 |------|-------------|
-| `WorkshopService` | Public service interface -- the single entry point for all workshop operations |
+| `WorkshopExposeAPI` | Public service interface -- the single entry point for all workshop operations |
 | `WorkshopRequest` | Public input DTO (title, description) with Jakarta Validation |
 | `WorkshopResponse` | Public output DTO containing all workshop fields |
 | `WorkshopEvents` | Public event namespace with sealed interface and 6 event records |
@@ -266,6 +268,6 @@ No cross-module foreign keys. Room reference is a logical UUID only.
 
 ## Known TODOs
 
-- `schedule()` uses placeholder room display name (`"Room " + roomId`). Real implementation should call `RoomService` from the Room module.
+- `schedule()` uses placeholder room display name (`"Room " + roomId`). Real implementation should call `RoomExposeAPI` from the Room module.
 - `cancel()` uses hardcoded reason `"Cancelled by admin"`. Future: add reason parameter to `WorkshopController.cancel()`.
 - Room module uses `LocalDateTime` (non-compliant with Architecture Baseline). This is tracked as a future ADR.

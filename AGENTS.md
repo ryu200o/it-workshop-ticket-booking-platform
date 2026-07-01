@@ -18,7 +18,7 @@ Every module follows a strict two-zone package layout:
 
 | Location | Purpose | Access |
 |----------|---------|--------|
-| `{module}/` (root) | Public interfaces (`*Service.java`), event namespaces (`*Events.java`), `package-info.java`, public `*NotFoundException` classes | `public` |
+| `{module}/` (root) | Public interfaces (`*ExposeAPI.java`), event namespaces (`*Events.java`), `package-info.java`, public `*NotFoundException` classes | `public` |
 | `{module}/dto/` | Public request/response DTOs (Java records), activation requests | `public` |
 | `{module}/internal/` | **ALL** internal classes: Entity, Repository, ServiceImpl, Controller, ControllerAdvice, internal exceptions | `package-private` |
 
@@ -36,40 +36,47 @@ com.example.itworkshopticketbookingplatform/    # Main package (@SpringBootAppli
 ├── ItWorkshopTicketBookingPlatformApplication.java
 │
 ├── room/                                       # MODULE ROOM (PUBLIC FACADE)
-│   ├── RoomService.java                        # Public Interface for cross-module calls
+│   ├── RoomExposeAPI.java                      # Public Interface for cross-module calls
 │   ├── RoomNotFoundException.java              # PUBLIC exception (module root, importable by others)
 │   ├── package-info.java                       # Module metadata with allowedDependencies
 │   │
 │   ├── dto/                                    # PUBLIC DTOs (exposed via @NamedInterface)
 │   │   ├── RoomRequest.java                    # Public Request DTO (Java Record)
 │   │   ├── RoomResponse.java                   # Public Response DTO (Java Record)
-│   │   └── RoomActivationRequest.java          # Public Request DTO (Java Record)
+│   │   ├── RoomActivationRequest.java          # Public Request DTO (Java Record)
+│   │   └── package-info.java                   # @NamedInterface exposure
 │   │
 │   └── internal/                               # BLACK-BOX ZONE (ALL package-private, FLAT)
+│       ├── RoomExposeAPIImpl.java              # Implements RoomExposeAPI (delegates to RoomService)
+│       ├── RoomService.java                    # Internal service interface (full CRUD, package-private)
+│       ├── RoomServiceImpl.java                # Business logic implementation (package-private)
 │       ├── Room.java                           # @Entity (JPA) with business logic
 │       ├── RoomRepository.java                 # Spring Data JPA interface (extends JpaRepository)
-│       ├── RoomServiceImpl.java                # Business logic implementation
-│       ├── RoomController.java                 # Web controller (package-private)
+│       ├── RoomController.java                 # Web controller (package-private, injects RoomService)
 │       ├── RoomControllerAdvice.java           # Controller advice (package-private)
 │       └── RoomExceptions.java                 # Consolidated exceptions (static inner classes)
 │
 └── workshop/                                   # MODULE WORKSHOP (PUBLIC FACADE)
-    ├── WorkshopService.java                    # Public Interface
+    ├── WorkshopExposeAPI.java                  # Public Interface for cross-module calls
     ├── WorkshopEvents.java                     # Public Event Namespace
     ├── WorkshopNotFoundException.java          # PUBLIC exception (module root, importable by others)
     ├── package-info.java                       # Module metadata
     │
     ├── dto/                                    # PUBLIC DTOs (exposed via @NamedInterface)
     │   ├── WorkshopRequest.java                # Public Request DTO (Java Record)
-    │   └── WorkshopResponse.java               # Public Response DTO (Java Record)
+    │   ├── WorkshopResponse.java               # Public Response DTO (Java Record)
+    │   └── package-info.java                   # @NamedInterface exposure
     │
     └── internal/                               # BLACK-BOX ZONE (ALL package-private, FLAT)
+        ├── WorkshopExposeAPIImpl.java          # Implements WorkshopExposeAPI (delegates to WorkshopService)
+        ├── WorkshopService.java                # Internal service interface (full CRUD, package-private)
+        ├── WorkshopServiceImpl.java            # Business logic implementation (package-private)
         ├── Workshop.java                       # @Entity (JPA) with business logic
         ├── WorkshopState.java                  # Enum
         ├── WorkshopRepository.java             # Spring Data JPA interface (extends JpaRepository)
-        ├── WorkshopServiceImpl.java            # Business logic implementation
-        ├── WorkshopController.java             # Web controller (package-private)
+        ├── WorkshopController.java             # Web controller (package-private, injects WorkshopService)
         ├── WorkshopControllerAdvice.java       # Controller advice (package-private)
+        ├── WorkshopPageRequest.java            # Internal DTO for pagination
         └── WorkshopExceptions.java             # Consolidated exceptions (static inner classes)
 ```
 
@@ -185,7 +192,7 @@ Modules **MUST** communicate asynchronously via events, **NEVER** through direct
 
 ```java
 @Service
-class WorkshopServiceImpl implements WorkshopService {
+class WorkshopServiceImpl implements WorkshopService {  // Both in internal/ (package-private)
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -303,7 +310,55 @@ class WorkshopModuleTest {
 - **Constructors for persistence reconstruction should be package-private** to prevent instantiation outside the module.
 - Only the public facade types at module root should be `public`.
 - **`internal/` root** — ALL classes live here: Entity, Repository, ServiceImpl, Controller, ControllerAdvice, consolidated exceptions. All package-private.
+- **`*Service.java` interfaces now reside in `internal/`** as package-private, used only for internal controller injection. They are NOT part of the public facade.
 - **Enforcement:** The review-agent will VETO any class under `internal/` that declares `public` access.
+
+### *ExposeAPIImpl Delegation Pattern
+
+Each module follows a **two-layer service delegation** pattern to separate internal full CRUD from curated public API:
+
+| Layer | File | Location | Access | Role |
+|-------|------|----------|--------|------|
+| 1. Public API | `*ExposeAPI.java` | Module root | `public` | Curated interface — only methods intended for cross-module use |
+| 2. Delegation Impl | `*ExposeAPIImpl.java` | `internal/` | package-private | Implements `*ExposeAPI`, delegates to `*Service` |
+| 3. Internal Service | `*Service.java` | `internal/` | package-private | Full CRUD interface — used by Controllers internally |
+| 4. Business Logic | `*ServiceImpl.java` | `internal/` | package-private | Implements `*Service` (actual business logic implementation) |
+
+**How it works:**
+- **Controllers** inject `*Service` (package-private) to access full CRUD for REST endpoints
+- **Other modules** access only `*ExposeAPI` (public) which exposes curated methods
+- `*ExposeAPIImpl` acts as a **facade adapter**: it implements the public interface and delegates to the internal `*Service`
+
+Example flow:
+```java
+// Public facade at module root (curated API surface)
+public interface RoomExposeAPI {
+    RoomResponse getRoomDetail(UUID id);    // Only what others need
+}
+
+// Internal delegation impl in internal/ (package-private)
+class RoomExposeAPIImpl implements RoomExposeAPI {
+    private final RoomService roomService;   // Injects full internal service
+    
+    @Override
+    public RoomResponse getRoomDetail(UUID id) {
+        return roomService.getRoomDetail(id);  // Delegates to internal service
+    }
+}
+
+// Internal service in internal/ (package-private, full CRUD)
+interface RoomService {
+    RoomResponse createRoom(...);             // All CRUD methods
+    RoomResponse updateRoom(...);
+    RoomResponse getRoomDetail(...);
+    List<RoomResponse> getRoomList();
+}
+
+// Controller injects full internal service (package-private)
+class RoomController {
+    private final RoomService roomService;    // Full CRUD access
+}
+```
 
 ## Allowed Patterns
 
@@ -316,9 +371,10 @@ class WorkshopModuleTest {
 
 - **Do Not Return Entities from Services**: Application services must never directly return domain entities to the presentation layer or other modules. Always convert to a DTO.
 - **Do Not Put Business Validation in Entities**: Complex business rules that involve multiple entities, external services, or complex logic should reside in application services, not directly within domain entities. Entities should only enforce their own, simple invariants.
-- **No Direct Cross-Module Bean Injection**: Modules MUST NOT autowire beans from other modules directly (e.g., `@Autowired WorkshopService` inside `RoomService`). Use events for cross-module communication.
+- **No Direct Cross-Module Bean Injection**: Modules MUST NOT autowire beans from other modules directly (e.g., `@Autowired WorkshopExposeAPI` inside `RoomExposeAPI`). Use events for cross-module communication.
 - **No Internal Package Leaks**: Classes in `internal/` are not accessible from outside the module. Never import from another module's `internal/` package.
 - **No `public` Classes in internal/**: All classes under `internal/` must use package-private access to enforce compile-time encapsulation.
+- **No `*Service.java` at module root as public facade**: The public facade MUST be named `*ExposeAPI.java` to explicitly signal this is the curated public API surface. `*Service.java` at module root leaks all internal CRUD methods. `*Service.java` interfaces belong in `internal/` as package-private.
 - **No Scattered Event Files**: Do not create individual event files under `internal/domain/event/`. Consolidate all public events into a single `{Module}Events.java` namespace at the module root.
 - **No Shared Domain Packages**: Each module must own and manage its own private domain models and tables. Do not create shared 'common' packages containing database entities.
 - **No Strong Consistency Across Boundaries**: Do not force multi-module actions into a single shared transaction block. Use eventual consistency via events.
@@ -332,8 +388,8 @@ class WorkshopModuleTest {
 
 The **Room** and **Workshop** modules serve as reference implementations:
 
-- **Room module** (zero dependencies): `package-info.java` with no `allowedDependencies`. Public facade: `RoomService`, `RoomRequest`, `RoomResponse`, `RoomActivationRequest`.
-- **Workshop module** (depends on `room`): `package-info.java` with `allowedDependencies = {"room"}`. Public facade: `WorkshopService`, `WorkshopRequest`, `WorkshopResponse`, `WorkshopEvents`.
+- **Room module** (zero dependencies): `package-info.java` with no `allowedDependencies`. Public facade: `RoomExposeAPI`, `RoomRequest`, `RoomResponse`, `RoomActivationRequest`.
+- **Workshop module** (depends on `room`): `package-info.java` with `allowedDependencies = {"room"}`. Public facade: `WorkshopExposeAPI`, `WorkshopRequest`, `WorkshopResponse`, `WorkshopEvents`.
 
 For detailed module documentation, see:
 - `docs/modules/workshop/README.md` - Workshop Module (Core Domain)
