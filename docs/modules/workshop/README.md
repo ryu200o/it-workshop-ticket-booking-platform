@@ -13,26 +13,31 @@ Workshops are exclusively **offline (in-person)** sessions. Each Workshop repres
 ```
 workshop/
 ├── WorkshopExposeAPI.java                 # Public service interface
-├── WorkshopNotFoundException.java    # Public exception (importable by other modules)
-├── WorkshopEvents.java               # Public event namespace (sealed interface)
-├── package-info.java                 # @ApplicationModule(allowedDependencies = {"room"})
+├── WorkshopNotFoundException.java         # Public exception (importable by other modules)
+├── WorkshopEvents.java                    # Public event namespace (sealed interface)
+├── package-info.java                      # @ApplicationModule(allowedDependencies = {"room"})
 │
-├── dto/                              # PUBLIC DTOs (exposed via @NamedInterface)
-│   ├── WorkshopRequest.java          # Public input DTO with Jakarta Validation
-│   ├── WorkshopResponse.java         # Public output DTO
-│   └── package-info.java             # @NamedInterface
+├── dto/                                   # PUBLIC DTOs (exposed via @NamedInterface)
+│   ├── WorkshopRequest.java               # Public input DTO with Jakarta Validation
+│   ├── WorkshopResponse.java              # Public output DTO
+│   └── package-info.java                  # @NamedInterface
 │
-└── internal/                         # Black-box zone (ALL package-private, FLAT)
-    ├── WorkshopExposeAPIImpl.java    # Implements WorkshopExposeAPI (delegates to WorkshopService)
-    ├── WorkshopService.java          # Internal service interface (full CRUD, package-private)
-    ├── Workshop.java                 # @Entity (JPA) with business logic
-    ├── WorkshopState.java            # State enum
-    ├── WorkshopRepository.java       # Spring Data JPA interface (extends JpaRepository)
-    ├── WorkshopServiceImpl.java      # Business logic + event publishing
-    ├── WorkshopController.java       # REST endpoints (injects WorkshopService)
-    ├── WorkshopControllerAdvice.java # Error handling
-    ├── WorkshopPageRequest.java      # Internal DTO for pagination
-    └── WorkshopExceptions.java       # Consolidated exceptions (static inner classes)
+└── internal/                              # Black-box zone (ALL package-private, FLAT)
+    ├── WorkshopExposeAPIImpl.java         # Implements WorkshopExposeAPI (delegates to WorkshopService)
+    ├── WorkshopService.java               # Internal service interface (full CRUD, package-private)
+    ├── WorkshopServiceImpl.java           # Business logic + history + snapshot + event publishing
+    ├── Workshop.java                      # @Entity (JPA) with business logic — @Table("workshops")
+    ├── WorkshopState.java                 # State enum
+    ├── WorkshopRepository.java            # Spring Data JPA interface (extends JpaRepository)
+    ├── WorkshopHistory.java               # @Entity (JPA) — business audit log entry
+    ├── WorkshopHistoryRepository.java     # Spring Data JPA interface
+    ├── WorkshopSnapshot.java              # @Entity (JPA) — immutable report (created on COMPLETED)
+    ├── WorkshopSnapshotRepository.java    # Spring Data JPA interface
+    ├── RoomEventHandler.java              # Handles Room events via @ApplicationModuleListener
+    ├── WorkshopController.java            # REST endpoints (injects WorkshopService)
+    ├── WorkshopControllerAdvice.java      # Error handling
+    ├── WorkshopPageRequest.java           # Internal DTO for pagination
+    └── WorkshopExceptions.java            # Consolidated exceptions (static inner classes)
 ```
 
 ### Public API (Module Root)
@@ -129,6 +134,82 @@ Six domain events are published via `ApplicationEventPublisher` within `@Transac
 
 Events are consumed by other modules via `@ApplicationModuleListener`.
 
+### RoomEventHandler — Cross-Module Event Handling
+
+The `RoomEventHandler` in `internal/` listens for `RoomEvents` published by the Room module using `@ApplicationModuleListener`. Each handler runs in a separate thread with `REQUIRES_NEW` transaction propagation.
+
+| Room Event | Workshop Response | History Event Type |
+|------------|-------------------|-------------------|
+| `RoomRenamed` | PUBLISHED workshops: updates `roomDisplayNameSnapshot` | `ROOM_RENAMED` |
+| `RoomRenamed` | IN_PROGRESS workshops: logs only | `ROOM_RENAMED_DURING_SESSION` |
+| `RoomLocationChanged` | PUBLISHED workshops: logs (reschedule required) | `ROOM_LOCATION_CHANGED` |
+| `RoomLocationChanged` | IN_PROGRESS workshops: logs (EMERGENCY) | `ROOM_LOCATION_CHANGED_EMERGENCY` |
+| `RoomDeactivated` | PUBLISHED/IN_PROGRESS workshops: logs | `ROOM_DEACTIVATED` |
+
+```java
+@Service
+class RoomEventHandler {
+    @ApplicationModuleListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handleRoomRenamed(RoomEvents.RoomRenamed event) { ... }
+
+    @ApplicationModuleListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handleRoomLocationChanged(RoomEvents.RoomLocationChanged event) { ... }
+
+    @ApplicationModuleListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handleRoomDeactivated(RoomEvents.RoomDeactivated event) { ... }
+}
+```
+
+---
+
+## Audit History — WorkshopHistory
+
+Every mutation to a Workshop is recorded in the `workshop_histories` table. This provides a complete business audit trail. `WorkshopServiceImpl` calls `saveHistory()` after every state-changing operation.
+
+Event types recorded: `DRAFT_CREATED`, `CONTENT_UPDATED`, `SCHEDULED`, `PUBLISHED`, `RESCHEDULED`, `STARTED`, `COMPLETED`, `CANCELLED`, plus cross-module events from `RoomEventHandler` (`ROOM_RENAMED`, `ROOM_LOCATION_CHANGED`, `ROOM_DEACTIVATED`, etc.).
+
+```java
+@Entity
+@Table(name = "workshop_histories")
+class WorkshopHistory {
+    UUID id;
+    UUID workshopId;       // FK → workshops(id)
+    String eventType;      // e.g., "PUBLISHED", "ROOM_RENAMED"
+    Map<String, Object> eventData;  // JSONB — event-specific payload
+    String reason;         // Human-readable reason
+    UUID changedBy;        // Who made the change
+    Instant occurredAt;    // When the event occurred
+    Instant createdAt;     // Record creation time
+}
+```
+
+---
+
+## WorkshopSnapshot — Immutable Report
+
+A `WorkshopSnapshot` is created once when a workshop transitions to `COMPLETED`. It captures a denormalized snapshot of the workshop's final state for reporting purposes. Snapshots are immutable — no update or delete operations.
+
+```java
+@Entity
+@Table(name = "workshop_snapshots")
+class WorkshopSnapshot {
+    UUID id;
+    UUID workshopId;       // FK → workshops(id), UNIQUE
+    String roomName;       // Denormalized from roomDisplayNameSnapshot
+    String roomLocation;   // Denormalized (TODO: fetch from Room module)
+    Instant startTime;
+    Instant endTime;
+    int capacity;
+    int actualAttendance;  // Default 0 (TODO: update from Registration)
+    BigDecimal feedbackScore;  // Nullable
+    Instant completedAt;
+    Instant createdAt;
+}
+```
+
 ---
 
 ## State Machine
@@ -176,6 +257,8 @@ Events are consumed by other modules via `@ApplicationModuleListener`.
 | IN_PROGRESS | CANCELLED | Unconditional |
 
 Terminal states (`COMPLETED`, `CANCELLED`) allow no outgoing transitions. All invalid transitions throw `InvalidWorkshopStateException`.
+
+**Side effects on transitions:** Every state-changing operation in `WorkshopServiceImpl` now (1) saves a `WorkshopHistory` audit record, (2) publishes domain events via `ApplicationEventPublisher`, and (3) on `COMPLETED`, creates a `WorkshopSnapshot`.
 
 ---
 
@@ -230,11 +313,27 @@ All temporal fields (`startTime`, `endTime`, `createdAt`, `updatedAt`) use `java
 
 All 6 domain events are consolidated into a single `WorkshopEvents.java` namespace at the module root. A sealed `WorkshopEvent` interface enforces that all events share `workshopId()` and `occurredAt()` attributes. This replaces scattered individual event files and improves discoverability.
 
+### @Table(name = "workshops") — Plural Naming Convention
+
+The Workshop entity uses `@Table(name = "workshops")` (plural). This aligns with the Room module (`rooms`) and Registration module (`registrations`). The table was renamed from `workshop` to `workshops` via Flyway V5.
+
+### WorkshopHistory as Business Audit Log
+
+`WorkshopHistory` captures lifecycle events as JSONB payloads. This is distinct from the technical `event_publication` outbox (Spring Modulith). The audit log records *what changed*; the outbox records *whether events were delivered*.
+
+### WorkshopSnapshot as Immutable Report
+
+`WorkshopSnapshot` is created once on COMPLETED and never modified. The unique index on `workshop_id` enforces one snapshot per workshop. This pattern is suitable for reporting and analytics without impacting the live workshop data.
+
+### RoomEventHandler for Cross-Module Event Handling
+
+`RoomEventHandler` uses `@ApplicationModuleListener` with `REQUIRES_NEW` transaction propagation to handle Room events in isolation. This ensures the Workshop module's transaction is independent of the Room module's transaction, maintaining proper module boundaries.
+
 ---
 
 ## Database Schema
 
-Table: `workshop`
+### Table: `workshops` (renamed from `workshop` via Flyway V5)
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -246,9 +345,48 @@ Table: `workshop`
 | `start_time` | `TIMESTAMP WITH TIME ZONE` | |
 | `end_time` | `TIMESTAMP WITH TIME ZONE` | |
 | `capacity` | `INTEGER` | Business capacity (0 < capacity <= Room.capacity) |
-| `state` | `VARCHAR(20)` | DRAFT, PUBLISHED, IN_PROGRESS, COMPLETED, CANCELLED |
+| `state` | `VARCHAR(50)` | DRAFT, PUBLISHED, IN_PROGRESS, COMPLETED, CANCELLED (expanded from VARCHAR(20)) |
 | `created_at` | `TIMESTAMP WITH TIME ZONE` | |
 | `updated_at` | `TIMESTAMP WITH TIME ZONE` | |
+
+**Indexes:** `idx_workshops_room_id` (renamed from `idx_workshop_room_id`)
+
+### Table: `workshop_histories` (Flyway V5)
+
+Business audit log — one record per lifecycle event (DRAFT_CREATED, CONTENT_UPDATED, SCHEDULED, PUBLISHED, RESCHEDULED, STARTED, COMPLETED, CANCELLED, plus cross-module events from RoomEventHandler).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `UUID` | Primary key |
+| `workshop_id` | `UUID` | Not null, FK → workshops(id) |
+| `event_type` | `VARCHAR(50)` | Not null — e.g., DRAFT_CREATED, PUBLISHED, ROOM_RENAMED |
+| `event_data` | `TEXT` (JSONB) | Not null — event-specific payload |
+| `reason` | `VARCHAR(255)` | Nullable |
+| `changed_by` | `UUID` | Not null |
+| `occurred_at` | `TIMESTAMP WITH TIME ZONE` | Not null |
+| `created_at` | `TIMESTAMP WITH TIME ZONE` | Not null |
+
+**Indexes:** `idx_workshop_histories_workshop_id`, `idx_workshop_histories_occurred_at`, `idx_workshop_histories_event_type`
+
+### Table: `workshop_snapshots` (Flyway V5)
+
+Immutable report — created once when a workshop transitions to COMPLETED. One snapshot per workshop (enforced by unique index).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `UUID` | Primary key |
+| `workshop_id` | `UUID` | Not null, FK → workshops(id), UNIQUE |
+| `room_name` | `VARCHAR(255)` | Not null |
+| `room_location` | `VARCHAR(255)` | Not null |
+| `start_time` | `TIMESTAMP WITH TIME ZONE` | Not null |
+| `end_time` | `TIMESTAMP WITH TIME ZONE` | Not null |
+| `capacity` | `INT` | Not null |
+| `actual_attendance` | `INT` | Default 0 |
+| `feedback_score` | `DECIMAL(3,2)` | Nullable |
+| `completed_at` | `TIMESTAMP WITH TIME ZONE` | Not null |
+| `created_at` | `TIMESTAMP WITH TIME ZONE` | Not null |
+
+**Indexes:** `uk_workshop_snapshots_workshop` (unique on `workshop_id`), `idx_workshop_snapshots_completed_at`
 
 No cross-module foreign keys. Room reference is a logical UUID only.
 
@@ -268,6 +406,9 @@ No cross-module foreign keys. Room reference is a logical UUID only.
 
 ## Known TODOs
 
+- `WorkshopExposeAPI` is currently empty — needs curated public methods for cross-module integration (Registration module needs to validate workshop state/capacity).
 - `schedule()` uses placeholder room display name (`"Room " + roomId`). Real implementation should call `RoomExposeAPI` from the Room module.
 - `cancel()` uses hardcoded reason `"Cancelled by admin"`. Future: add reason parameter to `WorkshopController.cancel()`.
+- `WorkshopSnapshot.roomLocation` is hardcoded to `"Unknown"` — should fetch actual room location from Room module.
+- `WorkshopSnapshot.actualAttendance` is initialized to 0 — should be updated from Registration module attendance events.
 - Room module uses `LocalDateTime` (non-compliant with Architecture Baseline). This is tracked as a future ADR.

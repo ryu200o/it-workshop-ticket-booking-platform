@@ -7,7 +7,7 @@ import java.util.UUID;
 import com.example.itworkshopticketbookingplatform.workshop.internal.WorkshopExceptions.InvalidWorkshopStateException;
 
 @Entity
-@Table(name = "workshop")
+@Table(name = "workshops")
 class Workshop {
 
     @Id
@@ -206,6 +206,11 @@ class Workshop {
      * Updates content (title, description).
      * Allowed in: DRAFT, PUBLISHED
      */
+    void updateRoomDisplayNameSnapshot(String newRoomDisplayName) {
+        this.roomDisplayNameSnapshot = newRoomDisplayName;
+        this.updatedAt = Instant.now();
+    }
+
     void updateContent(String title, String description) {
         if (state == WorkshopState.IN_PROGRESS || state == WorkshopState.COMPLETED || state == WorkshopState.CANCELLED) {
             throw new InvalidWorkshopStateException("Cannot update content in state: " + state);
