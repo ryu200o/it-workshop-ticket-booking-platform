@@ -5,9 +5,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 interface WorkshopRepository extends JpaRepository<Workshop, UUID> {
+
+    List<Workshop> findByRoomId(UUID roomId);
 
     @Query("SELECT CASE WHEN COUNT(w) > 0 THEN true ELSE false END FROM Workshop w " +
            "WHERE w.roomId = :roomId " +

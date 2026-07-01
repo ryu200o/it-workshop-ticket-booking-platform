@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -18,18 +19,36 @@ import java.util.UUID;
 class WorkshopServiceImpl implements WorkshopService {
 
     private final WorkshopRepository workshopRepository;
+    private final WorkshopHistoryRepository workshopHistoryRepository;
+    private final WorkshopSnapshotRepository workshopSnapshotRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     WorkshopServiceImpl(WorkshopRepository workshopRepository,
-                         ApplicationEventPublisher eventPublisher) {
+                        WorkshopHistoryRepository workshopHistoryRepository,
+                        WorkshopSnapshotRepository workshopSnapshotRepository,
+                        ApplicationEventPublisher eventPublisher) {
         this.workshopRepository = workshopRepository;
+        this.workshopHistoryRepository = workshopHistoryRepository;
+        this.workshopSnapshotRepository = workshopSnapshotRepository;
         this.eventPublisher = eventPublisher;
+    }
+
+    private void saveHistory(Workshop workshop, String eventType, Map<String, Object> eventData, String reason) {
+        workshopHistoryRepository.save(new WorkshopHistory(
+            UUID.randomUUID(), workshop.getId(), eventType, eventData,
+            reason, UUID.randomUUID(), Instant.now()
+        ));
     }
 
     @Override
     public WorkshopResponse createDraft(WorkshopRequest request) {
         Workshop workshop = Workshop.createDraft(request.title(), request.description());
         Workshop saved = workshopRepository.save(workshop);
+
+        saveHistory(saved, "DRAFT_CREATED",
+            Map.of("title", request.title(), "description", request.description() != null ? request.description() : ""),
+            "Workshop draft created");
+
         return toResponse(saved);
     }
 
@@ -39,8 +58,18 @@ class WorkshopServiceImpl implements WorkshopService {
         Workshop workshop = workshopRepository.findById(id)
                 .orElseThrow(() -> new WorkshopNotFoundException(UUID.fromString(workshopId)));
 
+        String oldTitle = workshop.getTitle();
+        String oldDescription = workshop.getDescription();
+
         workshop.updateContent(request.title(), request.description());
         Workshop saved = workshopRepository.save(workshop);
+
+        saveHistory(saved, "CONTENT_UPDATED",
+            Map.of("oldTitle", oldTitle, "newTitle", request.title(),
+                   "oldDescription", oldDescription != null ? oldDescription : "",
+                   "newDescription", request.description() != null ? request.description() : ""),
+            "Workshop content updated");
+
         return toResponse(saved);
     }
 
@@ -55,6 +84,11 @@ class WorkshopServiceImpl implements WorkshopService {
 
         workshop.schedule(roomUuid, roomDisplayNameSnapshot, startTime, endTime, capacity);
         Workshop saved = workshopRepository.save(workshop);
+
+        saveHistory(saved, "SCHEDULED",
+            Map.of("roomId", roomId, "startTime", startTime.toString(), "endTime", endTime.toString(), "capacity", capacity),
+            "Workshop scheduled");
+
         return toResponse(saved);
     }
 
@@ -82,6 +116,13 @@ class WorkshopServiceImpl implements WorkshopService {
         );
 
         Workshop saved = workshopRepository.save(workshop);
+
+        saveHistory(saved, "PUBLISHED",
+            Map.of("roomId", saved.getRoomId() != null ? saved.getRoomId().toString() : "",
+                   "startTime", saved.getStartTime().toString(),
+                   "endTime", saved.getEndTime().toString(),
+                   "capacity", saved.getCapacity()),
+            "Workshop published");
 
         // Publish domain event
         eventPublisher.publishEvent(new WorkshopEvents.Published(
@@ -117,9 +158,18 @@ class WorkshopServiceImpl implements WorkshopService {
 
         Instant oldStartTime = workshop.getStartTime();
         Instant oldEndTime = workshop.getEndTime();
+        UUID oldRoomId = workshop.getRoomId();
 
         workshop.reschedule(startTime, endTime, newRoomId, newRoomDisplayNameSnapshot, roomChanged);
         Workshop saved = workshopRepository.save(workshop);
+
+        saveHistory(saved, "RESCHEDULED",
+            Map.of("oldStartTime", oldStartTime.toString(), "newStartTime", startTime.toString(),
+                   "oldEndTime", oldEndTime.toString(), "newEndTime", endTime.toString(),
+                   "roomChanged", roomChanged,
+                   "oldRoomId", oldRoomId != null ? oldRoomId.toString() : "",
+                   "newRoomId", newRoomId.toString()),
+            "Workshop rescheduled");
 
         // Publish rescheduled event
         eventPublisher.publishEvent(new WorkshopEvents.Rescheduled(
@@ -137,7 +187,7 @@ class WorkshopServiceImpl implements WorkshopService {
         if (roomChanged) {
             eventPublisher.publishEvent(new WorkshopEvents.RoomChanged(
                     saved.getId(),
-                    workshop.getRoomId(), // old room
+                    workshop.getRoomId(),
                     newRoomId,
                     newRoomDisplayNameSnapshot,
                     Instant.now()
@@ -156,6 +206,10 @@ class WorkshopServiceImpl implements WorkshopService {
         workshop.start();
         Workshop saved = workshopRepository.save(workshop);
 
+        saveHistory(saved, "STARTED",
+            Map.of("startTime", saved.getStartTime().toString()),
+            "Workshop started");
+
         eventPublisher.publishEvent(new WorkshopEvents.Started(
                 saved.getId(),
                 Instant.now()
@@ -172,6 +226,22 @@ class WorkshopServiceImpl implements WorkshopService {
 
         workshop.complete();
         Workshop saved = workshopRepository.save(workshop);
+
+        // Create snapshot when workshop COMPLETED
+        WorkshopSnapshot snapshot = new WorkshopSnapshot(
+            UUID.randomUUID(), saved.getId(),
+            saved.getRoomDisplayNameSnapshot() != null ? saved.getRoomDisplayNameSnapshot() : "Unknown",
+            "Unknown", // TODO: Fetch actual room location from Room module
+            saved.getStartTime(), saved.getEndTime(), saved.getCapacity(),
+            0, // actual_attendance — to be updated later via Registration
+            Instant.now()
+        );
+        workshopSnapshotRepository.save(snapshot);
+
+        saveHistory(saved, "COMPLETED",
+            Map.of("startTime", saved.getStartTime().toString(), "endTime", saved.getEndTime().toString(),
+                   "capacity", saved.getCapacity(), "snapshotId", snapshot.getId().toString()),
+            "Workshop completed");
 
         eventPublisher.publishEvent(new WorkshopEvents.Completed(
                 saved.getId(),
@@ -190,9 +260,13 @@ class WorkshopServiceImpl implements WorkshopService {
         workshop.cancel();
         Workshop saved = workshopRepository.save(workshop);
 
+        saveHistory(saved, "CANCELLED",
+            Map.of("state", saved.getState().name()),
+            "Cancelled by admin");
+
         eventPublisher.publishEvent(new WorkshopEvents.Cancelled(
                 saved.getId(),
-                "Cancelled by admin", // TODO: Add reason parameter
+                "Cancelled by admin",
                 Instant.now()
         ));
 

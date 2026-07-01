@@ -40,6 +40,12 @@ class WorkshopServiceIntegrationTests {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private WorkshopHistoryRepository workshopHistoryRepository;
+
+    @Mock
+    private WorkshopSnapshotRepository workshopSnapshotRepository;
+
     @InjectMocks
     private WorkshopServiceImpl workshopService;
 
@@ -390,12 +396,14 @@ class WorkshopServiceIntegrationTests {
         void shouldCompleteAndEmitEvent() {
             when(workshopRepository.findById(WORKSHOP_UUID)).thenReturn(Optional.of(inProgressWorkshop));
             when(workshopRepository.save(any(Workshop.class))).thenReturn(inProgressWorkshop);
+            when(workshopSnapshotRepository.save(any(WorkshopSnapshot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             var result = workshopService.complete(WORKSHOP_ID);
 
             assertNotNull(result);
             assertEquals(WorkshopState.COMPLETED, inProgressWorkshop.getState());
             verify(eventPublisher).publishEvent(any(WorkshopEvents.Completed.class));
+            verify(workshopSnapshotRepository).save(any(WorkshopSnapshot.class));
         }
 
         @Test
